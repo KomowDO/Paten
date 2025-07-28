@@ -42,9 +42,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: UbahDataScreen(), // Sekarang akan menampilkan form tambah pengguna
-      // Jika Anda ingin tetap di UbahDataScreen dan memiliki tombol untuk ke TambahPenggunaScreen,
-      // maka Anda perlu menambahkan Navigator.push() di UbahDataScreen.
+      home: UbahDataScreen(),
     );
   }
 }

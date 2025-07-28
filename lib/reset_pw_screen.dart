@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
-  // Jika form ini dipanggil dari daftar pengguna,
-  // Anda mungkin ingin meneruskan ID pengguna yang akan direset password-nya.
-  // Contoh: final String userIdToReset;
-  // const ResetPasswordScreen({Key? key, required this.userIdToReset}) : super(key: key);
-
   @override
   _ResetPasswordScreenState createState() => _ResetPasswordScreenState();
 }
@@ -33,11 +28,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         _isLoading = true; //
       });
 
-      // Data yang akan disimulasikan untuk reset password
-      // Asumsi: ID pengguna yang akan direset sudah diketahui oleh admin (misal dari halaman sebelumnya)
-      // String userId = widget.userIdToReset; // Jika Anda meneruskan userId
-      String simulatedUserId =
-          'RT001_User'; // Contoh ID pengguna yang direset oleh admin
+      String simulatedUserId = 'RT001_User'; //
 
       final String newPassword = _newPasswordController.text;
 

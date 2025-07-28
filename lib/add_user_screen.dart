@@ -1,47 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:dio/dio.dart';
+import 'package:paten/api_service.dart';
 
 class TambahPenggunaScreen extends StatefulWidget {
+  const TambahPenggunaScreen({super.key});
+
   @override
   _TambahPenggunaScreenState createState() => _TambahPenggunaScreenState();
 }
 
 class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
   final _formKey = GlobalKey<FormState>();
+  final ApiService _apiService = ApiService();
 
-  // Controllers untuk setiap input field (kosong secara default)
   final TextEditingController _nikController = TextEditingController();
   final TextEditingController _namaController = TextEditingController();
   final TextEditingController _alamatController = TextEditingController();
   final TextEditingController _teleponController = TextEditingController();
-  String? _selectedJabatan; // Ini akan dimulai sebagai null
+  String? _selectedJabatan;
   final TextEditingController _wilayahRtController = TextEditingController();
   final TextEditingController _wilayahRwController = TextEditingController();
   final TextEditingController _jabatanMulaiController = TextEditingController();
   final TextEditingController _jabatanAkhirController = TextEditingController();
 
-  final List<String> _jabatanOptions = [
-    'Pilih Jabatan',
-    'Ketua RW',
-    'Wakil RW',
-    'Sekretaris RW',
-    'Bendahara RW',
-    'Staff RW',
-    'Ketua RT',
-    'Wakil RT',
-    'Sekretaris RT',
-    'Bendahara RT',
-    'Staff RT',
-  ];
+  List<String> _jabatanOptions = [];
+  bool _isJabatanLoading = true;
 
   DateTime? _jabatanMulaiDate;
   DateTime? _jabatanAkhirDate;
 
-  bool _isLoading = false; // Untuk simulasi loading UI
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _apiService.addInterceptors();
+    _apiService.removeBearerToken();
+    print('[_TambahPenggunaScreenState] initState dipanggil.');
+    _fetchJabatanOptions();
+  }
 
   @override
   void dispose() {
-    // Penting untuk membuang controller saat widget tidak lagi digunakan
     _nikController.dispose();
     _namaController.dispose();
     _alamatController.dispose();
@@ -53,7 +54,37 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
     super.dispose();
   }
 
-  // Fungsi untuk menampilkan DatePicker
+  Future<void> _fetchJabatanOptions() async {
+    print('[_TambahPenggunaScreenState] _fetchJabatanOptions dipanggil.');
+    setState(() {
+      _isJabatanLoading = true;
+    });
+    try {
+      final fetchedOptions = await _apiService.fetchJabatanOptions();
+      print(
+        '[_TambahPenggunaScreenState] Data jabatan diterima: $fetchedOptions',
+      );
+      setState(() {
+        _jabatanOptions = fetchedOptions;
+      });
+      print(
+        '[_TambahPenggunaScreenState] _jabatanOptions setelah update: ${_jabatanOptions.length} item',
+      );
+    } catch (e) {
+      print('[_TambahPenggunaScreenState] Error saat memuat jabatan: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal memuat daftar jabatan: ${e.toString()}')),
+      );
+    } finally {
+      setState(() {
+        _isJabatanLoading = false;
+        print(
+          '[_TambahPenggunaScreenState] _isJabatanLoading diatur ke false.',
+        );
+      });
+    }
+  }
+
   Future<void> _selectDate(
     BuildContext context,
     TextEditingController controller,
@@ -61,7 +92,7 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
   ) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(), // Mulai dari tanggal hari ini
+      initialDate: DateTime.now(),
       firstDate: DateTime(1900),
       lastDate: DateTime(2101),
     );
@@ -78,14 +109,12 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
     }
   }
 
-  // Fungsi untuk "menyimpan" data (simulasi tanpa API)
   void _simpanData() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
-        _isLoading = true; // Set loading true saat proses dimulai
+        _isLoading = true;
       });
 
-      // Siapkan data untuk dicetak ke konsol
       final Map<String, dynamic> newData = {
         'nik': _nikController.text,
         'nama': _namaController.text,
@@ -99,30 +128,17 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
       };
 
       try {
-        print(
-          'Data pengguna baru yang akan "disimpan": $newData',
-        ); // Cetak data ke konsol
-        await Future.delayed(
-          Duration(seconds: 2),
-        ); // Simulasi penundaan jaringan 2 detik
+        print('Simulasi: Menambah data ke API: $newData');
+        await Future.delayed(Duration(seconds: 2));
 
-        // Tampilkan pesan sukses
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Pengguna baru berhasil "ditambahkan" secara lokal!'),
           ),
         );
-        // Opsi: Kembali ke halaman sebelumnya setelah sukses
         Navigator.of(context).pop();
-
-        // Atau, reset form jika ingin tetap di halaman ini setelah submit
-        // _formKey.currentState!.reset();
-        // _nikController.clear();
-        // _namaController.clear();
-        // ... (clear semua controller)
-        // setState(() { _selectedJabatan = null; });
       } catch (e) {
-        print('Error simulasi penyimpanan: $e');
+        print('Error saat "menambahkan" pengguna: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -132,7 +148,7 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
         );
       } finally {
         setState(() {
-          _isLoading = false; // Set loading false setelah proses selesai
+          _isLoading = false;
         });
       }
     }
@@ -143,146 +159,164 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.of(context).pop(); // Aksi tombol kembali
+            Navigator.of(context).pop();
           },
         ),
-        title: Text('Tambah Pengguna RT/RW'), // Judul AppBar
+        title: const Text('Tambah Pengguna RT/RW'),
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator()) // Indikator loading
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    // Input field untuk NIK
-                    _buildTextField(
-                      _nikController,
-                      'NIK',
-                      isRequired: true,
-                      keyboardType: TextInputType.number,
-                    ),
-                    SizedBox(height: 16.0),
-                    // Input field untuk Nama
-                    _buildTextField(_namaController, 'Nama', isRequired: true),
-                    SizedBox(height: 16.0),
-                    // Input field untuk Alamat
-                    _buildTextField(
-                      _alamatController,
-                      'Alamat',
-                      isRequired: true,
-                      maxLines: 2,
-                    ),
-                    SizedBox(height: 16.0),
-                    // Input field untuk No. Telp/WA
-                    _buildTextField(
-                      _teleponController,
-                      'No. Telp/WA',
-                      isRequired: true,
-                      keyboardType: TextInputType.phone,
-                    ),
-                    SizedBox(height: 16.0),
-                    // Dropdown untuk Jabatan
-                    _buildDropdownField(
-                      'Jabatan',
-                      _jabatanOptions,
-                      _selectedJabatan,
-                      (String? newValue) {
-                        setState(() {
-                          _selectedJabatan = newValue;
-                        });
-                      },
-                    ),
-                    SizedBox(height: 16.0),
-                    // Input field untuk Wilayah RT
-                    _buildTextField(
-                      _wilayahRtController,
-                      'Wilayah RT',
-                      isRequired: true,
-                      keyboardType: TextInputType.number,
-                    ),
-                    SizedBox(height: 16.0),
-                    // Input field untuk Wilayah RW
-                    _buildTextField(
-                      _wilayahRwController,
-                      'Wilayah RW',
-                      isRequired: true,
-                      keyboardType: TextInputType.number,
-                    ),
-                    SizedBox(height: 16.0),
-                    // Field tanggal untuk Jabatan Mulai
-                    _buildDateField(
-                      _jabatanMulaiController,
-                      'Jabatan Mulai',
-                      true,
-                    ),
-                    SizedBox(height: 16.0),
-                    // Field tanggal untuk Jabatan Akhir
-                    _buildDateField(
-                      _jabatanAkhirController,
-                      'Jabatan Akhir',
-                      false,
-                    ),
-                    SizedBox(height: 32.0),
-                    // Baris untuk tombol Batal dan Simpan
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: <Widget>[
-                        OutlinedButton(
-                          onPressed: () {
-                            Navigator.of(context).pop(); // Aksi Batal: kembali
-                          },
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Theme.of(context).primaryColor,
-                            side: BorderSide(
-                              color: Theme.of(context).primaryColor,
-                            ),
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 12,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            textStyle: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          child: Text('Batal'),
-                        ),
-                        SizedBox(width: 16.0),
-                        ElevatedButton(
-                          onPressed: _isLoading ? null : _simpanData,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).primaryColor,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: _isLoading
-                              ? SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
+          ? const Center(child: CircularProgressIndicator())
+          // START: Wrapper SafeArea ditambahkan di sini
+          : SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      _buildTextField(
+                        _nikController,
+                        'NIK',
+                        isRequired: true,
+                        keyboardType: TextInputType.number,
+                      ),
+                      const SizedBox(height: 16.0),
+                      _buildTextField(
+                        _namaController,
+                        'Nama',
+                        isRequired: true,
+                      ),
+                      const SizedBox(height: 16.0),
+                      _buildTextField(
+                        _alamatController,
+                        'Alamat',
+                        isRequired: true,
+                        maxLines: 2,
+                      ),
+                      const SizedBox(height: 16.0),
+                      _buildTextField(
+                        _teleponController,
+                        'No. Telp/WA',
+                        isRequired: true,
+                        keyboardType: TextInputType.phone,
+                      ),
+                      const SizedBox(height: 16.0),
+                      _isJabatanLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : _jabatanOptions.isEmpty
+                          ? Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 8.0,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Tidak ada opsi jabatan tersedia.',
+                                    style: TextStyle(color: Colors.red),
                                   ),
-                                )
-                              : Text('Simpan'),
-                        ),
-                      ],
-                    ),
-                  ],
+                                  TextButton(
+                                    onPressed: _fetchJabatanOptions,
+                                    child: const Text('Coba Lagi'),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : _buildDropdownField(
+                              'Jabatan',
+                              _jabatanOptions,
+                              _selectedJabatan,
+                              (String? newValue) {
+                                setState(() {
+                                  _selectedJabatan = newValue;
+                                });
+                              },
+                            ),
+                      const SizedBox(height: 16.0),
+                      _buildTextField(
+                        _wilayahRtController,
+                        'Wilayah RT',
+                        isRequired: true,
+                        keyboardType: TextInputType.number,
+                      ),
+                      const SizedBox(height: 16.0),
+                      _buildTextField(
+                        _wilayahRwController,
+                        'Wilayah RW',
+                        isRequired: true,
+                        keyboardType: TextInputType.number,
+                      ),
+                      const SizedBox(height: 16.0),
+                      _buildDateField(
+                        _jabatanMulaiController,
+                        'Jabatan Mulai',
+                        true,
+                      ),
+                      const SizedBox(height: 16.0),
+                      _buildDateField(
+                        _jabatanAkhirController,
+                        'Jabatan Akhir',
+                        false,
+                      ),
+                      const SizedBox(height: 32.0),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: <Widget>[
+                          OutlinedButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Theme.of(context).primaryColor,
+                              side: BorderSide(
+                                color: Theme.of(context).primaryColor,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              textStyle: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            child: const Text('Batal'),
+                          ),
+                          const SizedBox(width: 16.0),
+                          ElevatedButton(
+                            onPressed: _isLoading ? null : _simpanData,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(context).primaryColor,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text('Simpan'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
+      // END: Wrapper SafeArea
     );
   }
 
-  // Helper function untuk membangun TextFormField
   Widget _buildTextField(
     TextEditingController controller,
     String label, {
@@ -307,7 +341,6 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
     );
   }
 
-  // Helper function untuk membangun DropdownButtonFormField
   Widget _buildDropdownField(
     String label,
     List<String> options,
@@ -333,7 +366,6 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
     );
   }
 
-  // Helper function untuk membangun field tanggal dengan DatePicker
   Widget _buildDateField(
     TextEditingController controller,
     String label,
@@ -345,7 +377,7 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
       decoration: InputDecoration(
         labelText: '$label *',
         hintText: 'Pilih $label',
-        suffixIcon: Icon(Icons.calendar_today),
+        suffixIcon: const Icon(Icons.calendar_today),
       ),
       onTap: () => _selectDate(context, controller, isStartDate),
       validator: (value) {
