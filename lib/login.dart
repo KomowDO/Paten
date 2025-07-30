@@ -6,7 +6,7 @@ class GridBackground extends CustomPainter {
 
   GridBackground({
     this.gridColor = const Color(0xFFE0E7FF),
-    this.spacing = 20.0,
+    this.spacing = 40.0,
   });
 
   @override
@@ -63,55 +63,50 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Login')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Tambahkan gambar di atas form login
-            Image.asset(
-              'lib/img/logo-paten.png', // Path sesuai struktur folder Anda
-              height: 120,
-            ),
-            const SizedBox(height: 24),
-            TextField(
-              controller: _usernameController,
-              decoration: const InputDecoration(
-                labelText: 'Username',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _passwordController,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                border: OutlineInputBorder(),
-              ),
-              obscureText: true,
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(
-                    0xFF03038E,
-                  ), // Solid dark blue background
-                  foregroundColor: Colors.white, // Set text/icon color to white
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
+      body: CustomPaint(
+        painter: GridBackground(), // gunakan painter yang sudah kamu buat
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset('lib/img/logo-paten.png', height: 120),
+              const SizedBox(height: 24),
+              TextField(
+                controller: _usernameController,
+                decoration: const InputDecoration(
+                  labelText: 'Username',
+                  border: OutlineInputBorder(),
                 ),
-                onPressed: _isLoading ? null : _login,
-                child: _isLoading
-                    ? const CircularProgressIndicator(
-                        color: Color.fromARGB(255, 255, 255, 255),
-                      )
-                    : const Text('Login'),
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              TextField(
+                controller: _passwordController,
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                  border: OutlineInputBorder(),
+                ),
+                obscureText: true,
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF03038E),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                  onPressed: _isLoading ? null : _login,
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text('Login'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
