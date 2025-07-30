@@ -270,16 +270,22 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
                               Navigator.of(context).pop();
                             },
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: Theme.of(context).primaryColor,
-                              side: BorderSide(
-                                color: Theme.of(context).primaryColor,
+                              foregroundColor: const Color(
+                                0xFF03038E,
+                              ), // warna teks biru solid
+                              backgroundColor: Colors.white, // background putih
+                              side: const BorderSide(
+                                color: Color(
+                                  0xFF03038E,
+                                ), // warna outline biru solid
+                                width: 2,
                               ),
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 24,
                                 vertical: 12,
                               ),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(30),
                               ),
                               textStyle: const TextStyle(
                                 fontSize: 16,
@@ -289,22 +295,35 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
                             child: const Text('Batal'),
                           ),
                           const SizedBox(width: 16.0),
-                          ElevatedButton(
-                            onPressed: _isLoading ? null : _simpanData,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Theme.of(context).primaryColor,
-                              foregroundColor: Colors.white,
+                          SizedBox(
+                            width: 160,
+                            child: ElevatedButton(
+                              onPressed: _isLoading ? null : _simpanData,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF03038E),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                textStyle: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Text('Simpan'),
                             ),
-                            child: _isLoading
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Text('Simpan'),
                           ),
                         ],
                       ),

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 //import 'package:paten/add_user_screen.dart';
 //import 'package:paten/reset_pw_screen.dart';
-import 'package:paten/edit_screen.dart';
+//import 'package:paten/edit_screen.dart';
+import 'package:paten/login.dart';
 
 void main() {
   runApp(const MyApp());
@@ -19,7 +20,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
         appBarTheme: AppBarTheme(
-          backgroundColor: const Color.fromARGB(255, 4, 50, 103),
+          backgroundColor: const Color(0xFF03038E), // biru solid (#0A33AA)
           foregroundColor: Colors.white,
         ),
         inputDecorationTheme: InputDecorationTheme(
@@ -42,7 +43,10 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: UbahDataScreen(),
+      home: LoginPage(),
+      //home: TambahPenggunaScreen(),
+      //home: UbahDataScreen(),
+      //home: ResetPasswordScreen(),
     );
   }
 }

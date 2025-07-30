@@ -74,7 +74,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             Navigator.of(context).pop();
           },
         ),
-        title: Text('Reset Password Pengguna'),
+        title: Text('Reset Password'),
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
@@ -86,7 +86,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      'Atur password baru untuk pengguna ini.',
+                      'Atur password baru.',
                       style: TextStyle(fontSize: 16.0, color: Colors.black87),
                     ),
                     SizedBox(height: 24.0),
@@ -173,21 +173,20 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     SizedBox(height: 32.0),
                     // Tombol Reset Password
                     SizedBox(
-                      width: double.infinity, // Membuat tombol penuh lebar
+                      width: double.infinity,
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _resetPassword,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).primaryColor,
+                          backgroundColor: const Color(0xFF03038E),
                           foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(
-                            vertical: 14.0,
-                          ), // Padding vertikal lebih besar
+                          padding: const EdgeInsets.symmetric(vertical: 14.0),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(30),
                           ),
+                          textStyle: const TextStyle(fontSize: 18),
                         ),
                         child: _isLoading
-                            ? SizedBox(
+                            ? const SizedBox(
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(
@@ -195,13 +194,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                                   strokeWidth: 2,
                                 ),
                               )
-                            : Text(
-                                'Atur Ulang Password',
-                                style: TextStyle(fontSize: 18),
-                              ),
+                            : const Text('Atur Ulang Password'),
                       ),
                     ),
-                    SizedBox(height: 16.0),
+                    const SizedBox(height: 16.0),
                     // Tombol Batal
                     SizedBox(
                       width: double.infinity,
@@ -210,16 +206,19 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           Navigator.of(context).pop();
                         },
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Theme.of(context).primaryColor,
-                          side: BorderSide(
-                            color: Theme.of(context).primaryColor,
+                          foregroundColor: const Color(0xFF03038E),
+                          backgroundColor: Colors.white,
+                          side: const BorderSide(
+                            color: Color(0xFF03038E),
+                            width: 2,
                           ),
-                          padding: EdgeInsets.symmetric(vertical: 14.0),
+                          padding: const EdgeInsets.symmetric(vertical: 14.0),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(30),
                           ),
+                          textStyle: const TextStyle(fontSize: 18),
                         ),
-                        child: Text('Batal', style: TextStyle(fontSize: 18)),
+                        child: const Text('Batal'),
                       ),
                     ),
                   ],
