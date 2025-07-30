@@ -32,9 +32,7 @@ class ApiService {
   // Metode untuk mengambil daftar jabatan dari API baru
   Future<List<String>> fetchJabatanOptions() async {
     try {
-      // Tambahkan User-Agent agar request mirip browser
-      _dio.options.headers['User-Agent'] =
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+      // User-Agent dihilangkan, tidak ditambahkan ke headers
       print('Headers sebelum request: ${_dio.options.headers}');
 
       final response = await _dio.get(_jabatanApiUrl);
