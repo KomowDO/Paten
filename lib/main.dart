@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 //import 'package:paten/add_user_screen.dart';
-//import 'package:paten/reset_pw_screen.dart';
+import 'package:paten/reset_pw_screen.dart';
 //import 'package:paten/edit_screen.dart';
-import 'package:paten/login.dart';
+//import 'package:paten/login.dart';
 
 void main() {
   runApp(const MyApp());
@@ -43,10 +43,10 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: LoginPage(),
+      //home: LoginPage(),
       //home: TambahPenggunaScreen(),
       //home: UbahDataScreen(),
-      //home: ResetPasswordScreen(),
+      home: ResetPasswordScreen(),
     );
   }
 }

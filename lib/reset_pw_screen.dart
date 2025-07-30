@@ -8,15 +8,19 @@ class ResetPasswordScreen extends StatefulWidget {
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  TextEditingController _newPasswordController = TextEditingController();
-  TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _oldPasswordController = TextEditingController();
+  final TextEditingController _newPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   bool _isLoading = false;
+  bool _isOldPasswordVisible = false;
   bool _isNewPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
 
   @override
   void dispose() {
+    _oldPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -42,7 +46,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Reset password berhasil untuk $simulatedUserId (simulasi oleh admin)!',
+              'Ganti password berhasil untuk $simulatedUserId (simulasi oleh admin)!',
             ),
           ),
         );
@@ -52,7 +56,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Terjadi kesalahan saat mereset password: ${e.toString()}',
+              'Terjadi kesalahan saat mengganti password: ${e.toString()}',
             ),
           ),
         );
@@ -74,7 +78,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             Navigator.of(context).pop();
           },
         ),
-        title: Text('Reset Password'),
+        title: Text('Ganti Password'),
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
@@ -86,10 +90,53 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      'Atur password baru.',
+                      'Masukan password Lama.',
                       style: TextStyle(fontSize: 16.0, color: Colors.black87),
                     ),
                     SizedBox(height: 24.0),
+                    // Field Password Lama
+                    TextFormField(
+                      controller: _oldPasswordController,
+                      obscureText: !_isOldPasswordVisible,
+                      decoration: InputDecoration(
+                        labelText: 'Password Lama *',
+                        hintText: 'Masukkan password lama Anda',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[200],
+                        contentPadding: EdgeInsets.symmetric(
+                          vertical: 12.0,
+                          horizontal: 16.0,
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _isOldPasswordVisible
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                            color: Colors.grey,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _isOldPasswordVisible = !_isOldPasswordVisible;
+                            });
+                          },
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Password lama tidak boleh kosong';
+                        }
+                        return null;
+                      },
+                    ),
+                    SizedBox(height: 16.0),
+                    Text(
+                      'Masukan password baru.',
+                      style: TextStyle(fontSize: 16.0, color: Colors.black87),
+                    ),
+                    SizedBox(height: 16.0),
                     TextFormField(
                       controller: _newPasswordController,
                       obscureText: !_isNewPasswordVisible,
