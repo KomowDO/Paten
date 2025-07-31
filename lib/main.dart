@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
-//import 'package:paten/add_user_screen.dart';
-import 'package:paten/reset_pw_screen.dart';
-//import 'package:paten/edit_screen.dart';
-//import 'package:paten/login.dart';
+import 'package:paten/login.dart';
+import 'package:paten/api_service.dart'; // Penting: Import ApiService
 
 void main() {
+  // Pastikan Flutter binding diinisialisasi sebelum menggunakan service seperti shared_preferences
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Inisialisasi interceptor Dio untuk logging dan debugging API
+  // Ini harus dipanggil sekali di awal aplikasi
+  ApiService().addInterceptors();
+
   runApp(const MyApp());
 }
 
@@ -15,38 +20,42 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Aplikasi PATEN',
-      debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner: false, // Menghilangkan banner "DEBUG"
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
-        appBarTheme: AppBarTheme(
-          backgroundColor: const Color(0xFF03038E), // biru solid (#0A33AA)
-          foregroundColor: Colors.white,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF03038E), // Warna AppBar solid biru
+          foregroundColor: Colors.white, // Warna teks AppBar
         ),
         inputDecorationTheme: InputDecorationTheme(
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
           filled: true,
           fillColor: Colors.grey[200],
-          contentPadding: EdgeInsets.symmetric(
+          contentPadding: const EdgeInsets.symmetric(
             vertical: 12.0,
             horizontal: 16.0,
           ),
-          labelStyle: TextStyle(color: Colors.black54),
+          labelStyle: const TextStyle(color: Colors.black54),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
-            textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            textStyle: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ),
-      //home: LoginPage(),
-      //home: TambahPenggunaScreen(),
-      //home: UbahDataScreen(),
-      home: ResetPasswordScreen(),
+      home: LoginPage(), // Halaman awal aplikasi Anda
+      // Jika Anda ingin menguji halaman lain, Anda bisa menggantinya:
+      // home: TambahPenggunaScreen(),
+      // home: UbahDataScreen(),
+      // home: ResetPasswordScreen(),
     );
   }
 }
