@@ -1,28 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:dio/dio.dart';
-import 'package:paten/api_service.dart';
+import 'package:paten/services/api_service.dart';
 
-class TambahPenggunaScreen extends StatefulWidget {
-  const TambahPenggunaScreen({super.key});
+class UbahDataScreen extends StatefulWidget {
+  const UbahDataScreen({super.key});
 
   @override
-  _TambahPenggunaScreenState createState() => _TambahPenggunaScreenState();
+  _UbahDataScreenState createState() => _UbahDataScreenState();
 }
 
-class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
+class _UbahDataScreenState extends State<UbahDataScreen> {
   final _formKey = GlobalKey<FormState>();
   final ApiService _apiService = ApiService();
 
-  final TextEditingController _nikController = TextEditingController();
-  final TextEditingController _namaController = TextEditingController();
-  final TextEditingController _alamatController = TextEditingController();
-  final TextEditingController _teleponController = TextEditingController();
+  final TextEditingController _nikController = TextEditingController(
+    text: '3671071106720007',
+  );
+  final TextEditingController _namaController = TextEditingController(
+    text: 'ABIDIN',
+  );
+  final TextEditingController _alamatController = TextEditingController(
+    text: 'CIBODAS KECIL',
+  );
+  final TextEditingController _teleponController = TextEditingController(
+    text: '089614710009',
+  );
   String? _selectedJabatan;
-  final TextEditingController _wilayahRtController = TextEditingController();
-  final TextEditingController _wilayahRwController = TextEditingController();
-  final TextEditingController _jabatanMulaiController = TextEditingController();
-  final TextEditingController _jabatanAkhirController = TextEditingController();
+  final TextEditingController _wilayahRtController = TextEditingController(
+    text: '4',
+  );
+  final TextEditingController _wilayahRwController = TextEditingController(
+    text: '3',
+  );
+  final TextEditingController _jabatanMulaiController = TextEditingController(
+    text: '02/11/2023',
+  );
+  final TextEditingController _jabatanAkhirController = TextEditingController(
+    text: '02/11/2026',
+  );
 
   List<String> _jabatanOptions = [];
   bool _isJabatanLoading = true;
@@ -37,8 +53,27 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
     super.initState();
     _apiService.addInterceptors();
     _apiService.removeBearerToken();
-    print('[_TambahPenggunaScreenState] initState dipanggil.');
+    print('[_UbahDataScreenState] initState dipanggil.');
     _fetchJabatanOptions();
+
+    if (_jabatanMulaiController.text.isNotEmpty) {
+      try {
+        _jabatanMulaiDate = DateFormat(
+          'dd/MM/yyyy',
+        ).parse(_jabatanMulaiController.text);
+      } catch (e) {
+        print("Error parsing Jabatan Mulai date in initState: $e");
+      }
+    }
+    if (_jabatanAkhirController.text.isNotEmpty) {
+      try {
+        _jabatanAkhirDate = DateFormat(
+          'dd/MM/yyyy',
+        ).parse(_jabatanAkhirController.text);
+      } catch (e) {
+        print("Error parsing Jabatan Akhir date in initState: $e");
+      }
+    }
   }
 
   @override
@@ -55,32 +90,38 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
   }
 
   Future<void> _fetchJabatanOptions() async {
-    print('[_TambahPenggunaScreenState] _fetchJabatanOptions dipanggil.');
+    print('[_UbahDataScreenState] _fetchJabatanOptions dipanggil.');
     setState(() {
       _isJabatanLoading = true;
     });
     try {
       final fetchedOptions = await _apiService.fetchJabatanOptions();
-      print(
-        '[_TambahPenggunaScreenState] Data jabatan diterima: $fetchedOptions',
-      );
+      print('[_UbahDataScreenState] Data jabatan diterima: $fetchedOptions');
       setState(() {
         _jabatanOptions = fetchedOptions;
+        if (_selectedJabatan == null && _jabatanOptions.isNotEmpty) {
+          if (_jabatanOptions.contains('Ketua RT')) {
+            _selectedJabatan = 'Ketua RT';
+          } else {
+            _selectedJabatan = _jabatanOptions.first;
+          }
+        } else if (_selectedJabatan != null &&
+            !_jabatanOptions.contains(_selectedJabatan)) {
+          _selectedJabatan = null;
+        }
       });
       print(
-        '[_TambahPenggunaScreenState] _jabatanOptions setelah update: ${_jabatanOptions.length} item',
+        '[_UbahDataScreenState] _jabatanOptions setelah update: ${_jabatanOptions.length} item',
       );
     } catch (e) {
-      print('[_TambahPenggunaScreenState] Error saat memuat jabatan: $e');
+      print('[_UbahDataScreenState] Error saat memuat jabatan: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal memuat daftar jabatan: ${e.toString()}')),
       );
     } finally {
       setState(() {
         _isJabatanLoading = false;
-        print(
-          '[_TambahPenggunaScreenState] _isJabatanLoading diatur ke false.',
-        );
+        print('[_UbahDataScreenState] _isJabatanLoading diatur ke false.');
       });
     }
   }
@@ -92,7 +133,9 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
   ) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate:
+          (isStartDate ? _jabatanMulaiDate : _jabatanAkhirDate) ??
+          DateTime.now(),
       firstDate: DateTime(1900),
       lastDate: DateTime(2101),
     );
@@ -115,7 +158,7 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
         _isLoading = true;
       });
 
-      final Map<String, dynamic> newData = {
+      final Map<String, dynamic> dataToUpdate = {
         'nik': _nikController.text,
         'nama': _namaController.text,
         'alamat': _alamatController.text,
@@ -128,22 +171,38 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
       };
 
       try {
-        print('Simulasi: Menambah data ke API: $newData');
-        await Future.delayed(Duration(seconds: 2));
+        final response = await _apiService.updateUserData(dataToUpdate);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Pengguna baru berhasil "ditambahkan" secara lokal!'),
-          ),
-        );
-        Navigator.of(context).pop();
+        if (response.statusCode == 200) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Data berhasil disimpan!')),
+          );
+          Navigator.of(context).pop();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal menyimpan data: ${response.statusMessage}'),
+            ),
+          );
+        }
+      } on DioException catch (e) {
+        String errorMessage = 'Terjadi kesalahan jaringan atau server.';
+        if (e.response != null) {
+          errorMessage =
+              'Server error: ${e.response?.statusCode} - ${e.response?.statusMessage ?? 'Unknown error'}. Detail: ${e.response?.data?.toString() ?? ''}';
+        } else {
+          errorMessage =
+              'Tidak dapat terhubung ke server. Periksa koneksi internet Anda. ${e.message}';
+        }
+        print('Error Dio: $e');
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(errorMessage)));
       } catch (e) {
-        print('Error saat "menambahkan" pengguna: $e');
+        print('Error saat panggilan API: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Terjadi kesalahan saat "menambahkan" pengguna: ${e.toString()}',
-            ),
+            content: Text('Terjadi kesalahan tidak terduga: ${e.toString()}'),
           ),
         );
       } finally {
@@ -164,7 +223,7 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
             Navigator.of(context).pop();
           },
         ),
-        title: const Text('Tambah Pengguna RT/RW'),
+        title: const Text('Form Ubah Data'),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -272,12 +331,10 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
                             style: OutlinedButton.styleFrom(
                               foregroundColor: const Color(
                                 0xFF03038E,
-                              ), // warna teks biru solid
+                              ), // teks biru solid
                               backgroundColor: Colors.white, // background putih
                               side: const BorderSide(
-                                color: Color(
-                                  0xFF03038E,
-                                ), // warna outline biru solid
+                                color: Color(0xFF03038E), // outline biru solid
                                 width: 2,
                               ),
                               padding: const EdgeInsets.symmetric(

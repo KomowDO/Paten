@@ -9,7 +9,8 @@ class ApiService {
 
   // URL utama untuk otentikasi (login/token) - URL /exec yang terbukti di Postman
   final String _authApiUrl =
-      'https://script.google.com/macros/s/AKfycbybS_Jf4KMFNPz5t2hwf-0kvTI69BnnjpwT4nAt6UVw77UzQ7W72X42379ja8V21-Voeg/exec';
+      //'https://script.google.com/macros/s/AKfycbybS_Jf4KMFNPz5t2hwf-0kvTI69BnnjpwT4nAt6UVw77UzQ7W72X42379ja8V21-Voeg/exec';
+      'https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLgekkkSATV52bTnXseW56rzF-umV3NAaF__O_X6qR4ueaSZNhIElG9gawACgo8OR5TjnBmP5Ql_GUvxzf4Ah8imwKY1RZ6AnHRYolNTKIdVvh16YGPtk1p6qPnOFpu0AZJkjAbDhh7Mg2NfDWhDDcfpdwJ7P5T4SVf5dOIrmmToM0H5k8wlGfZ0R-bgLywC0_nfAXdqoSJBV5Mb8UJq7hC3RJe8DStem3aACdhMAnp28CNf8OUAdP_eWDpQ_LIwfzWaAxli7hZ7OCmmq3PEwRUamQCH1YCN9r2x2OE8&lib=MmAaqttzDCabCIYbIYlXhGuvRNnNj0k7b';
 
   ApiService() : _dio = Dio();
 
@@ -297,8 +298,7 @@ class ApiService {
       else {
         return {
           'success': false,
-          'message':
-              'Login gagal. Status Code Akhir: ${response.statusCode}. Mohon hubungi senior Anda.',
+          'message': 'Login gagal. Status Code Akhir: ${response.statusCode}.',
         };
       }
     } on DioException catch (e) {
