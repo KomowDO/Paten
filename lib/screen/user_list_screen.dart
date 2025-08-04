@@ -18,6 +18,12 @@ class _UserListScreenState extends State<UserListScreen> {
   String? _selectedKelurahan;
   final TextEditingController _rwController = TextEditingController();
   final TextEditingController _rtController = TextEditingController();
+  final TextEditingController _keywordController = TextEditingController();
+
+  // Kode unik unit organisasi dan parameter API lainnya
+  final String _kodeUnorPegawai = '07.13.09.03';
+  final int _page = 1;
+  final int _limit = 10;
 
   late Future<List<User>> _users;
 
@@ -31,10 +37,14 @@ class _UserListScreenState extends State<UserListScreen> {
   void _fetchUsers() {
     setState(() {
       _users = ApiService().getUsers(
-        kecamatan: _selectedKecamatan,
-        kelurahan: _selectedKelurahan,
-        rw: int.tryParse(_rwController.text),
-        rt: int.tryParse(_rtController.text),
+        kode_unor_pegawai: _kodeUnorPegawai,
+        page: _page,
+        limit: _limit,
+        filter_kecamatan: _selectedKecamatan,
+        filter_kelurahan: _selectedKelurahan,
+        filter_no_rw: _rwController.text,
+        filter_no_rt: _rtController.text,
+        keyword: _keywordController.text,
       );
     });
   }
@@ -46,6 +56,7 @@ class _UserListScreenState extends State<UserListScreen> {
       _selectedKelurahan = null;
       _rwController.clear();
       _rtController.clear();
+      _keywordController.clear();
     });
     _fetchUsers();
   }
@@ -54,6 +65,7 @@ class _UserListScreenState extends State<UserListScreen> {
   void dispose() {
     _rwController.dispose();
     _rtController.dispose();
+    _keywordController.dispose();
     super.dispose();
   }
 
@@ -66,12 +78,14 @@ class _UserListScreenState extends State<UserListScreen> {
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () {
-              // Aksi untuk pencarian
+              // Menjalankan pencarian langsung dengan keyword
+              _fetchUsers();
             },
           ),
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: () {
+              // Menampilkan/menyembunyikan filter lanjutan
               setState(() {
                 _isFilterVisible = !_isFilterVisible;
               });
@@ -151,6 +165,19 @@ class _UserListScreenState extends State<UserListScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          TextField(
+            controller: _keywordController,
+            decoration: const InputDecoration(
+              hintText: 'Parameter Search...',
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              suffixIcon: Icon(Icons.search),
+            ),
+            onSubmitted: (value) {
+              _fetchUsers();
+            },
+          ),
+          const SizedBox(height: 16),
           const Text(
             'Advanced Filter',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'dart:convert';
+import 'package:paten/models/user.dart'; // Impor model User
 
 class ApiService {
   final Dio _dio;
@@ -7,12 +8,21 @@ class ApiService {
   final String _jabatanApiUrl =
       'https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLiSt4bPhW8QIfEakvSkorTbO5FA3X7ZYneP2cHiuiTi5F2y7Mf3DxwazdIGK4PyfCF05E1Mc4CvvgHAM4N5SyjXOAfCdzhRn_Jy7npxsYFz41sMlC5u6raDOFdARDfRr2OkBKlJLO3X7iKCMEApT6RAXZ8f0nnSm2TjqKwnXC7ULvW6UpSC6fXXdgBZZRU9PlAz69IDx5VIhBiFwWLoljY6iQ6hPNk8ZSVg1g3m90IA0IWZrzInEwnff0MdJo52tv9y2W6BgFubAE1cNjv1bACokJ2VKw&lib=M_AeKjZaFOlawafwJcLPaaIaJ-zFb6PIO';
 
+  // URL untuk list pengguna RT/RW
+  final String _userListApiUrl =
+      'https://script.google.com/macros/s/AKfycbz6i1pWIsHXwjbJVGrD3WFN8iNmFvEe23yZD0brdHCC-7zewdFHrIZ_r5QGORCtIAc00w/exec';
+
   // URL utama untuk otentikasi (login/token) - URL /exec yang terbukti di Postman
   final String _authApiUrl =
-      //'https://script.google.com/macros/s/AKfycbybS_Jf4KMFNPz5t2hwf-0kvTI69BnnjpwT4nAt6UVw77UzQ7W72X42379ja8V21-Voeg/exec';
       'https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLgekkkSATV52bTnXseW56rzF-umV3NAaF__O_X6qR4ueaSZNhIElG9gawACgo8OR5TjnBmP5Ql_GUvxzf4Ah8imwKY1RZ6AnHRYolNTKIdVvh16YGPtk1p6qPnOFpu0AZJkjAbDhh7Mg2NfDWhDDcfpdwJ7P5T4SVf5dOIrmmToM0H5k8wlGfZ0R-bgLywC0_nfAXdqoSJBV5Mb8UJq7hC3RJe8DStem3aACdhMAnp28CNf8OUAdP_eWDpQ_LIwfzWaAxli7hZ7OCmmq3PEwRUamQCH1YCN9r2x2OE8&lib=MmAaqttzDCabCIYbIYlXhGuvRNnNj0k7b';
 
-  ApiService() : _dio = Dio();
+  // JWT Token yang Anda berikan
+  static const String _jwtToken =
+      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzODIzNyIsInVzZXJuYW1lIjoiMTk2NzA4MDUyMDEwMDExMDAyIiwiaWRfdXNlcl9ncm91cCI6IjMiLCJpZF9wZWdhd2FpIjoiNDA3OTciLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1NDI5MDY2OH0.h5LyW9vAFnkVuu43aIVwNPbZgcyVgZG8YjCa8XV5Sy8';
+
+  ApiService() : _dio = Dio() {
+    addInterceptors();
+  }
 
   void addInterceptors() {
     _dio.interceptors.add(
@@ -25,14 +35,13 @@ class ApiService {
       ),
     );
 
-    // Interceptor khusus untuk melacak rantai redirect (untuk debugging 302)
     _dio.interceptors.add(
       InterceptorsWrapper(
         onResponse: (response, handler) {
           if (response.redirects.isNotEmpty) {
             print('--- DIO REDIRECT CHAIN DETECTED ---');
             for (var redirect in response.redirects) {
-              print('  ${redirect.statusCode} from ${redirect.location}');
+              print('  ${redirect.statusCode} from ${redirect.location}');
             }
             print('--- END REDIRECT CHAIN ---');
           }
@@ -42,7 +51,7 @@ class ApiService {
           if (e.response != null && e.response!.redirects.isNotEmpty) {
             print('--- DIO ERROR WITH REDIRECTS DETECTED ---');
             for (var redirect in e.response!.redirects) {
-              print('  ${redirect.statusCode} from ${redirect.location}');
+              print('  ${redirect.statusCode} from ${redirect.location}');
             }
             print('--- END ERROR REDIRECT CHAIN ---');
           }
@@ -50,6 +59,77 @@ class ApiService {
         },
       ),
     );
+  }
+
+  // Metode untuk mengambil daftar pengguna RT/RW dengan filter
+  Future<List<User>> getUsers({
+    int page = 1,
+    int limit = 10,
+    required String kode_unor_pegawai,
+    String? filter_kecamatan,
+    String? filter_kelurahan,
+    String? filter_no_rw,
+    String? filter_no_rt,
+    String? keyword,
+  }) async {
+    try {
+      Map<String, dynamic> queryParameters = {
+        'jwt_token': _jwtToken,
+        'page': page,
+        'limit': limit,
+        'kode_unor_pegawai': kode_unor_pegawai,
+      };
+
+      if (filter_kecamatan != null && filter_kecamatan.isNotEmpty) {
+        queryParameters['filter_kecamatan'] = filter_kecamatan;
+      }
+      if (filter_kelurahan != null && filter_kelurahan.isNotEmpty) {
+        queryParameters['filter_kelurahan'] = filter_kelurahan;
+      }
+      if (filter_no_rw != null && filter_no_rw.isNotEmpty) {
+        queryParameters['filter_no_rw'] = filter_no_rw;
+      }
+      if (filter_no_rt != null && filter_no_rt.isNotEmpty) {
+        queryParameters['filter_no_rt'] = filter_no_rt;
+      }
+      if (keyword != null && keyword.isNotEmpty) {
+        queryParameters['keyword'] = keyword;
+      }
+
+      final response = await _dio.get(
+        _userListApiUrl,
+        queryParameters: queryParameters,
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        // Asumsi respons API adalah JSON yang memiliki key 'data'
+        // dan 'data' berisi list of users
+        final Map<String, dynamic> jsonResponse = response.data;
+        if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
+          List<dynamic> data = jsonResponse['data'];
+          return data.map((json) => User.fromJson(json)).toList();
+        } else {
+          throw Exception(
+            'Invalid API response format: "data" key not found or not a list.',
+          );
+        }
+      } else {
+        throw Exception(
+          'Failed to load users with status code: ${response.statusCode}',
+        );
+      }
+    } on DioError catch (e) {
+      String errorMessage;
+      if (e.response != null) {
+        errorMessage =
+            'Failed to load users: ${e.response!.statusCode} - ${e.response!.statusMessage}';
+      } else {
+        errorMessage = 'Failed to connect to the server: $e';
+      }
+      throw Exception(errorMessage);
+    } catch (e) {
+      throw Exception('An unexpected error occurred: $e');
+    }
   }
 
   // Metode simulasi untuk update data user (tidak terkait login)
@@ -107,17 +187,16 @@ class ApiService {
   }
 
   // Metode untuk mendapatkan token secara terpisah (jika API menyediakan endpoint GET untuk ini)
-  // Namun, access_token utama sudah didapat dari respons login POST.
   Future<String?> fetchBearerToken() async {
     try {
       final response = await _dio.get(
-        _authApiUrl, // Menggunakan URL yang sama, tapi metode GET
+        _authApiUrl,
         options: Options(
           headers: {
             "User-Agent":
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36",
           },
-          validateStatus: (status) => true, // Izinkan semua status
+          validateStatus: (status) => true,
           followRedirects: true,
           maxRedirects: 5,
         ),
@@ -181,7 +260,6 @@ class ApiService {
 
   // Metode utama untuk proses login
   Future<Map<String, dynamic>> login(String username, String password) async {
-    // Validasi input di sisi klien
     if (username.isEmpty || password.isEmpty) {
       return {
         'success': false,
@@ -191,34 +269,28 @@ class ApiService {
 
     try {
       final response = await _dio.post(
-        _authApiUrl, // Menggunakan URL API login
-        data: {
-          // Mengirim body sebagai JSON raw
-          "user": username,
-          "password": password,
-        },
+        _authApiUrl,
+        data: {"user": username, "password": password},
         options: Options(
           headers: {
             "Content-Type": "application/json",
             "User-Agent":
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36", // Spoof User-Agent
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36",
           },
           validateStatus: (status) {
-            return true; // Penting: Izinkan semua status untuk diteruskan ke handler
+            return true;
           },
-          followRedirects: true, // Pastikan Dio mengikuti redirect
-          maxRedirects: 5, // Batasi jumlah redirect
+          followRedirects: true,
+          maxRedirects: 5,
         ),
       );
 
-      // Log detail respons akhir dari API
       print('DIO LOG (Login Final Status): ${response.statusCode}');
       print(
         'DIO LOG (Login Final Data Raw Type): ${response.data.runtimeType}',
       );
       print('DIO LOG (Login Final Data Raw): ${response.data}');
 
-      // Analisis respons berdasarkan status code dan tipe data
       if (response.statusCode == 200 && response.data != null) {
         Map<String, dynamic> parsedResponse;
 
@@ -257,25 +329,22 @@ class ApiService {
           };
         }
 
-        // Periksa status 'success' dari JSON yang sudah di-parse (sesuai format Postman)
         if (parsedResponse.containsKey('success') &&
             parsedResponse['success'] == true) {
           String? accessToken;
           if (parsedResponse.containsKey('data') &&
               parsedResponse['data'] is Map<String, dynamic>) {
             final Map<String, dynamic> data = parsedResponse['data'];
-            accessToken = data['access_token']
-                ?.toString(); // Ekstrak access_token
+            accessToken = data['access_token']?.toString();
           }
 
           return {
             'success': true,
             'message': parsedResponse['message'] ?? 'Login berhasil!',
-            'user_data': parsedResponse, // Seluruh data user dari respons
-            'access_token': accessToken, // Tambahkan access_token ke hasil
+            'user_data': parsedResponse,
+            'access_token': accessToken,
           };
         } else {
-          // Login gagal berdasarkan respons JSON (misal, "Anda tidak memiliki akses")
           return {
             'success': false,
             'message':
@@ -283,9 +352,7 @@ class ApiService {
                 'Login gagal. Respon tidak lengkap dari server.',
           };
         }
-      }
-      // Penanganan khusus untuk HTTP 302 atau respons yang terlihat seperti HTML (indikasi redirect ke error page)
-      else if (response.statusCode == 302 ||
+      } else if (response.statusCode == 302 ||
           (response.data is String &&
               response.data.toString().contains('<html') &&
               response.data.toString().contains('</html>'))) {
@@ -293,9 +360,7 @@ class ApiService {
           'success': false,
           'message': 'API ini mengalihkan Anda ke halaman HTML.',
         };
-      }
-      // Penanganan status code HTTP lainnya (misal 404, 405, 500)
-      else {
+      } else {
         return {
           'success': false,
           'message': 'Login gagal. Status Code Akhir: ${response.statusCode}.',
@@ -305,7 +370,6 @@ class ApiService {
       print('Error Dio login: $e');
       if (e.response != null) {
         print('Error Response Data (Login): ${e.response?.data}');
-        // Coba parse pesan error dari respons Dio jika tersedia
         if (e.response?.data is Map<String, dynamic>) {
           return {
             'success': false,

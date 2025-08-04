@@ -16,9 +16,8 @@ class UserCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Icon(Icons.person, size: 40, color: Colors.blue),
-                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -43,15 +42,15 @@ class UserCard extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: user.status == 'Active'
+                    color: user.status == '1'
                         ? Colors.green[100]
                         : Colors.red[100],
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    user.status,
+                    user.status == '1' ? 'Active' : 'Inactive',
                     style: TextStyle(
-                      color: user.status == 'Active'
+                      color: user.status == '1'
                           ? Colors.green[900]
                           : Colors.red[900],
                       fontWeight: FontWeight.bold,
@@ -60,33 +59,54 @@ class UserCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(user.alamat),
-            const SizedBox(height: 8),
+            const Divider(height: 16, thickness: 1),
+            _buildDataRow(context, 'NIK', user.nik),
+            _buildDataRow(context, 'Alamat', user.alamat),
+            _buildDataRow(context, 'Kecamatan', user.kecamatan),
+            _buildDataRow(context, 'Kelurahan', user.kelurahan),
+            _buildDataRow(context, 'RW/RT', 'RW ${user.rw} / RT ${user.rt}'),
+            _buildDataRow(context, 'No. WA', user.no_wa),
+            _buildDataRow(context, 'Jabatan Mulai', user.jabatanMulai),
+            _buildDataRow(context, 'Jabatan Akhir', user.jabatanAkhir),
+            const Divider(height: 16, thickness: 1),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Text('RW ${user.rw}, RT ${user.rt}'),
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue),
-                      onPressed: () {
-                        // Aksi edit
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () {
-                        // Aksi delete
-                      },
-                    ),
-                  ],
+                IconButton(
+                  icon: const Icon(Icons.edit, color: Colors.blue),
+                  onPressed: () {
+                    // Aksi edit
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () {
+                    // Aksi delete
+                  },
                 ),
               ],
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildDataRow(BuildContext context, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120, // Lebar label yang tetap
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(child: Text(value)),
+        ],
       ),
     );
   }
