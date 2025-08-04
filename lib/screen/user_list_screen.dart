@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:paten/models/user.dart';
 import 'package:paten/widgets/user_card.dart';
-import 'package:paten/services/api_service.dart';
 
 class UserListScreen extends StatefulWidget {
   const UserListScreen({super.key});
@@ -19,23 +18,101 @@ class _UserListScreenState extends State<UserListScreen> {
   final TextEditingController _rwController = TextEditingController();
   final TextEditingController _rtController = TextEditingController();
 
-  late Future<List<User>> _users;
+  // Data dummy untuk mengetes tampilan
+  final List<User> _allUsers = [
+    User(
+      id: 1,
+      nik: "367111067660003",
+      nama: "ABAYUDIN",
+      jabatan: "Ketua RT",
+      alamat: "GG ANNUR RT.1 RW.5 KEL. NEROGTOG KEC.PINANG",
+      kecamatan: "PINANG",
+      kelurahan: "NEROGTOG",
+      rw: 5,
+      rt: 1,
+      status: "Active",
+    ),
+    User(
+      id: 2,
+      nik: "367111170870007",
+      nama: "AGAPITUS SUTADI",
+      jabatan: "Ketua RT",
+      alamat: "TAMAN PINANG INDAH BLOK C NO 24",
+      kecamatan: "PINANG",
+      kelurahan: "NEROGTOG",
+      rw: 4,
+      rt: 1,
+      status: "Active",
+    ),
+    User(
+      id: 3,
+      nik: "3671111406950004",
+      nama: "AKMAL",
+      jabatan: "Ketua RT",
+      alamat: "GG H PENDEK RT",
+      kecamatan: "PINANG",
+      kelurahan: "NEROGTOG",
+      rw: 5,
+      rt: 5,
+      status: "Active",
+    ),
+    User(
+      id: 4,
+      nik: "367406221176003",
+      nama: "ALI ASHARI",
+      jabatan: "Ketua RT",
+      alamat: "JL. KH HASYIM GG KIJAN RIDI",
+      kecamatan: "PINANG",
+      kelurahan: "NEROGTOG",
+      rw: 5,
+      rt: 3,
+      status: "Active",
+    ),
+    User(
+      id: 5,
+      nik: "367111709840006",
+      nama: "ARIP YANTO",
+      jabatan: "Ketua RT",
+      alamat: "GG. AMBON",
+      kecamatan: "PINANG",
+      kelurahan: "NEROGTOG",
+      rw: 6,
+      rt: 3,
+      status: "Active",
+    ),
+  ];
+
+  late List<User> _filteredUsers;
 
   @override
   void initState() {
     super.initState();
-    _fetchUsers();
+    // Inisialisasi _filteredUsers dengan semua data dummy
+    _filteredUsers = List.from(_allUsers);
   }
 
-  // Method untuk mengambil data dari API dengan filter
-  void _fetchUsers() {
+  // Method untuk melakukan filter pada data dummy
+  void _applyFilter() {
     setState(() {
-      _users = ApiService().getUsers(
-        kecamatan: _selectedKecamatan,
-        kelurahan: _selectedKelurahan,
-        rw: int.tryParse(_rwController.text),
-        rt: int.tryParse(_rtController.text),
-      );
+      _filteredUsers = _allUsers.where((user) {
+        final matchKecamatan =
+            _selectedKecamatan == null ||
+            _selectedKecamatan == 'Semua' ||
+            user.kecamatan == _selectedKecamatan;
+
+        final matchKelurahan =
+            _selectedKelurahan == null ||
+            _selectedKelurahan == 'Semua' ||
+            user.kelurahan == _selectedKelurahan;
+
+        final rwInput = int.tryParse(_rwController.text);
+        final matchRW = rwInput == null || user.rw == rwInput;
+
+        final rtInput = int.tryParse(_rtController.text);
+        final matchRT = rtInput == null || user.rt == rtInput;
+
+        return matchKecamatan && matchKelurahan && matchRW && matchRT;
+      }).toList();
     });
   }
 
@@ -46,8 +123,8 @@ class _UserListScreenState extends State<UserListScreen> {
       _selectedKelurahan = null;
       _rwController.clear();
       _rtController.clear();
+      _filteredUsers = List.from(_allUsers);
     });
-    _fetchUsers();
   }
 
   @override
@@ -95,7 +172,8 @@ class _UserListScreenState extends State<UserListScreen> {
                   label: const Text('Tambah Data'),
                 ),
                 TextButton.icon(
-                  onPressed: _fetchUsers,
+                  onPressed:
+                      _resetFilters, // Tombol refresh sekarang berfungsi sebagai reset filter
                   icon: const Icon(Icons.refresh),
                   label: const Text('Refresh Data'),
                 ),
@@ -103,41 +181,16 @@ class _UserListScreenState extends State<UserListScreen> {
             ),
           ),
           Expanded(
-            child: FutureBuilder<List<User>>(
-              future: _users,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text(
-                        'Gagal mengambil data: ${snapshot.error}',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    ),
-                  );
-                } else if (snapshot.hasData) {
-                  if (snapshot.data!.isEmpty) {
-                    return const Center(
-                      child: Text('Tidak ada data pengguna.'),
-                    );
-                  }
-                  return ListView.builder(
-                    itemCount: snapshot.data!.length,
+            child: _filteredUsers.isEmpty
+                ? const Center(
+                    child: Text('Tidak ada data yang cocok dengan filter.'),
+                  )
+                : ListView.builder(
+                    itemCount: _filteredUsers.length,
                     itemBuilder: (context, index) {
-                      return UserCard(user: snapshot.data![index]);
+                      return UserCard(user: _filteredUsers[index]);
                     },
-                  );
-                } else {
-                  return const Center(
-                    child: Text('Tidak ada data yang tersedia.'),
-                  );
-                }
-              },
-            ),
+                  ),
           ),
         ],
       ),
@@ -158,7 +211,7 @@ class _UserListScreenState extends State<UserListScreen> {
           const SizedBox(height: 16),
           _buildFilterDropdown(
             label: 'Kecamatan',
-            items: ['PINANG', 'KECAMATAN LAIN'],
+            items: ['Semua', 'PINANG', 'KECAMATAN LAIN'],
             value: _selectedKecamatan,
             onChanged: (String? newValue) {
               setState(() {
@@ -169,7 +222,7 @@ class _UserListScreenState extends State<UserListScreen> {
           const SizedBox(height: 8),
           _buildFilterDropdown(
             label: 'Kelurahan',
-            items: ['NEROGTOG', 'KELURAHAN LAIN'],
+            items: ['Semua', 'NEROGTOG', 'KELURAHAN LAIN'],
             value: _selectedKelurahan,
             onChanged: (String? newValue) {
               setState(() {
@@ -216,7 +269,7 @@ class _UserListScreenState extends State<UserListScreen> {
             children: [
               ElevatedButton(
                 onPressed: () {
-                  _fetchUsers();
+                  _applyFilter(); // Terapkan filter ke data dummy
                   setState(() {
                     _isFilterVisible = false;
                   });
@@ -226,7 +279,7 @@ class _UserListScreenState extends State<UserListScreen> {
               const SizedBox(width: 8),
               OutlinedButton(
                 onPressed: () {
-                  _resetFilters();
+                  _resetFilters(); // Reset filter
                 },
                 child: const Text('Reset'),
               ),
