@@ -28,9 +28,9 @@ class _UserCardState extends State<UserCard> {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+      margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.all(8.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -57,6 +57,14 @@ class _UserCardState extends State<UserCard> {
                 ),
                 Row(
                   children: [
+                    const Text(
+                      'Status',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -95,11 +103,15 @@ class _UserCardState extends State<UserCard> {
                 ),
               ],
             ),
-            const Divider(height: 12, thickness: 1),
+            const Divider(height: 8, thickness: 1),
             _buildDataRow(context, 'NIK', widget.user.nik),
             _buildDataRow(context, 'Alamat', widget.user.alamat),
-            _buildDataRow(context, 'Kecamatan', widget.user.kecamatan),
-            _buildDataRow(context, 'Kelurahan', widget.user.kelurahan),
+            // Menggabungkan Kecamatan dan Kelurahan menjadi satu baris
+            _buildDataRow(
+              context,
+              'Wilayah', // Label baru
+              'Kec. ${widget.user.kecamatan} / Kel. ${widget.user.kelurahan}',
+            ),
             _buildDataRow(
               context,
               'RW/RT',
@@ -108,11 +120,10 @@ class _UserCardState extends State<UserCard> {
             _buildDataRow(context, 'No. WA', widget.user.no_wa),
             _buildDataRow(context, 'Jabatan Mulai', widget.user.jabatanMulai),
             _buildDataRow(context, 'Jabatan Akhir', widget.user.jabatanAkhir),
-            const Divider(height: 12, thickness: 1),
+            const Divider(height: 8, thickness: 1),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                // Tombol Edit
                 ElevatedButton.icon(
                   onPressed: () {
                     // Aksi untuk mengedit data
@@ -120,8 +131,8 @@ class _UserCardState extends State<UserCard> {
                   icon: const Icon(Icons.edit, size: 16),
                   label: const Text('Edit', style: TextStyle(fontSize: 12)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green, // Warna latar hijau
-                    foregroundColor: Colors.white, // Warna teks putih
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
                       vertical: 4,
@@ -129,11 +140,10 @@ class _UserCardState extends State<UserCard> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    minimumSize: Size.zero, // Menghilangkan padding minimal
+                    minimumSize: Size.zero,
                   ),
                 ),
                 const SizedBox(width: 8),
-                // Tombol Delete
                 ElevatedButton.icon(
                   onPressed: () {
                     // Aksi untuk menghapus data
@@ -141,8 +151,8 @@ class _UserCardState extends State<UserCard> {
                   icon: const Icon(Icons.delete, size: 16),
                   label: const Text('Delete', style: TextStyle(fontSize: 12)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red, // Warna latar merah
-                    foregroundColor: Colors.white, // Warna teks putih
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
                       vertical: 4,
@@ -150,7 +160,7 @@ class _UserCardState extends State<UserCard> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    minimumSize: Size.zero, // Menghilangkan padding minimal
+                    minimumSize: Size.zero,
                   ),
                 ),
               ],
