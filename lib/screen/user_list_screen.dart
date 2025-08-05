@@ -11,16 +11,14 @@ class UserListScreen extends StatefulWidget {
 }
 
 class _UserListScreenState extends State<UserListScreen> {
-  // Menghapus: bool _isFilterVisible = false;
+  bool _isFilterVisible = false;
 
-  // State untuk menyimpan nilai filter
   String? _selectedKecamatan;
   String? _selectedKelurahan;
   final TextEditingController _rwController = TextEditingController();
   final TextEditingController _rtController = TextEditingController();
   final TextEditingController _keywordController = TextEditingController();
 
-  // Kode unik unit organisasi dan parameter API lainnya
   final String _kodeUnorPegawai = '07.13.09.03';
   final int _page = 1;
   final int _limit = 10;
@@ -33,7 +31,6 @@ class _UserListScreenState extends State<UserListScreen> {
     _fetchUsers();
   }
 
-  // Method untuk mengambil data dari API dengan filter
   void _fetchUsers() {
     setState(() {
       _users = ApiService().getUsers(
@@ -49,7 +46,6 @@ class _UserListScreenState extends State<UserListScreen> {
     });
   }
 
-  // Method untuk mereset semua filter
   void _resetFilters() {
     setState(() {
       _selectedKecamatan = null;
@@ -74,46 +70,32 @@ class _UserListScreenState extends State<UserListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Daftar Pengguna RT/RW'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              _fetchUsers();
-            },
-          ),
-        ],
+        // Menghilangkan ikon-ikon dari AppBar
+        actions: [],
       ),
       body: Column(
         children: [
-          // Menggunakan SingleChildScrollView untuk membuat bagian filter dapat digulir
-          SingleChildScrollView(
-            child: Column(
+          _buildCollapsibleFilter(),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildAdvancedFilter(),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          // Aksi tambah data
-                        },
-                        icon: const Icon(Icons.add),
-                        label: const Text('Tambah Data'),
-                      ),
-                      TextButton.icon(
-                        onPressed: _fetchUsers,
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Refresh Data'),
-                      ),
-                    ],
-                  ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    // Aksi tambah data
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('Tambah Data'),
+                ),
+                TextButton.icon(
+                  onPressed: _fetchUsers,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Refresh Data'),
                 ),
               ],
             ),
           ),
-          // Bagian list tetap di dalam Expanded agar dapat mengisi sisa ruang
           Expanded(
             child: FutureBuilder<List<User>>(
               future: _users,
@@ -156,18 +138,58 @@ class _UserListScreenState extends State<UserListScreen> {
     );
   }
 
-  Widget _buildAdvancedFilter() {
+  Widget _buildCollapsibleFilter() {
     return Container(
-      padding: const EdgeInsets.all(16.0),
       color: Colors.grey[200],
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Advanced Filter',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          InkWell(
+            onTap: () {
+              setState(() {
+                _isFilterVisible = !_isFilterVisible;
+              });
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 12.0,
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.tune, size: 20),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Advanced Filter',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const Spacer(),
+                  Icon(
+                    _isFilterVisible
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                  ),
+                ],
+              ),
+            ),
           ),
-          const SizedBox(height: 16),
+          ClipRect(
+            child: AnimatedSize(
+              duration: const Duration(milliseconds: 200),
+              child: _isFilterVisible
+                  ? _buildFilterInputs()
+                  : const SizedBox.shrink(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterInputs() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+      child: Column(
+        children: [
           TextField(
             controller: _keywordController,
             decoration: const InputDecoration(
@@ -180,7 +202,7 @@ class _UserListScreenState extends State<UserListScreen> {
               _fetchUsers();
             },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           _buildFilterDropdown(
             label: 'Kecamatan',
             items: ['PINANG', 'KECAMATAN LAIN'],
@@ -211,8 +233,8 @@ class _UserListScreenState extends State<UserListScreen> {
                     labelText: 'No. RW',
                     border: OutlineInputBorder(),
                     contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
+                      horizontal: 8,
+                      vertical: 6,
                     ),
                   ),
                   keyboardType: TextInputType.number,
@@ -226,8 +248,8 @@ class _UserListScreenState extends State<UserListScreen> {
                     labelText: 'No. RT',
                     border: OutlineInputBorder(),
                     contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
+                      horizontal: 8,
+                      vertical: 6,
                     ),
                   ),
                   keyboardType: TextInputType.number,
@@ -235,7 +257,7 @@ class _UserListScreenState extends State<UserListScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -266,14 +288,14 @@ class _UserListScreenState extends State<UserListScreen> {
     required ValueChanged<String?> onChanged,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: DropdownButtonFormField<String>(
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 8,
+            horizontal: 8,
+            vertical: 6,
           ),
         ),
         value: value,
