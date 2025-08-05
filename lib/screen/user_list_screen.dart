@@ -11,7 +11,7 @@ class UserListScreen extends StatefulWidget {
 }
 
 class _UserListScreenState extends State<UserListScreen> {
-  bool _isFilterVisible = false;
+  // Menghapus: bool _isFilterVisible = false;
 
   // State untuk menyimpan nilai filter
   String? _selectedKecamatan;
@@ -78,44 +78,42 @@ class _UserListScreenState extends State<UserListScreen> {
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () {
-              // Menjalankan pencarian langsung dengan keyword
               _fetchUsers();
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () {
-              // Menampilkan/menyembunyikan filter lanjutan
-              setState(() {
-                _isFilterVisible = !_isFilterVisible;
-              });
             },
           ),
         ],
       ),
       body: Column(
         children: [
-          if (_isFilterVisible) _buildAdvancedFilter(),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // Menggunakan SingleChildScrollView untuk membuat bagian filter dapat digulir
+          SingleChildScrollView(
+            child: Column(
               children: [
-                ElevatedButton.icon(
-                  onPressed: () {
-                    // Aksi tambah data
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Tambah Data'),
-                ),
-                TextButton.icon(
-                  onPressed: _fetchUsers,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Refresh Data'),
+                _buildAdvancedFilter(),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          // Aksi tambah data
+                        },
+                        icon: const Icon(Icons.add),
+                        label: const Text('Tambah Data'),
+                      ),
+                      TextButton.icon(
+                        onPressed: _fetchUsers,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Refresh Data'),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
+          // Bagian list tetap di dalam Expanded agar dapat mengisi sisa ruang
           Expanded(
             child: FutureBuilder<List<User>>(
               future: _users,
@@ -165,6 +163,11 @@ class _UserListScreenState extends State<UserListScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const Text(
+            'Advanced Filter',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
           TextField(
             controller: _keywordController,
             decoration: const InputDecoration(
@@ -176,11 +179,6 @@ class _UserListScreenState extends State<UserListScreen> {
             onSubmitted: (value) {
               _fetchUsers();
             },
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Advanced Filter',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           _buildFilterDropdown(
@@ -244,9 +242,6 @@ class _UserListScreenState extends State<UserListScreen> {
               ElevatedButton(
                 onPressed: () {
                   _fetchUsers();
-                  setState(() {
-                    _isFilterVisible = false;
-                  });
                 },
                 child: const Text('Terapkan Filter'),
               ),

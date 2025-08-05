@@ -1,10 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:paten/models/user.dart';
 
-class UserCard extends StatelessWidget {
+class UserCard extends StatefulWidget {
   final User user;
 
   const UserCard({super.key, required this.user});
+
+  @override
+  State<UserCard> createState() => _UserCardState();
+}
+
+class _UserCardState extends State<UserCard> {
+  late bool _isStatusActive;
+
+  @override
+  void initState() {
+    super.initState();
+    // Menginisialisasi state switch berdasarkan data dari API
+    _isStatusActive = widget.user.status == '1';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,51 +37,52 @@ class UserCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        user.nama,
+                        widget.user.nama,
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
-                        user.jabatan,
+                        widget.user.jabatan,
                         style: TextStyle(color: Colors.grey[600]),
                       ),
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: user.status == '1'
-                        ? Colors.green[100]
-                        : Colors.red[100],
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    user.status == '1' ? 'Active' : 'Inactive',
-                    style: TextStyle(
-                      color: user.status == '1'
-                          ? Colors.green[900]
-                          : Colors.red[900],
-                      fontWeight: FontWeight.bold,
+                // Mengganti Container dengan Switch
+                Row(
+                  children: [
+                    Text(_isStatusActive ? 'Active' : 'Inactive'),
+                    Switch(
+                      value: _isStatusActive,
+                      onChanged: (bool value) {
+                        setState(() {
+                          _isStatusActive = value;
+                        });
+                        // TODO: Di sini, Anda dapat menambahkan logic untuk memanggil API
+                        // guna memperbarui status pengguna di server.
+                      },
+                      activeColor: Colors.blue,
+                      inactiveTrackColor: Colors.grey[300],
                     ),
-                  ),
+                  ],
                 ),
               ],
             ),
             const Divider(height: 16, thickness: 1),
-            _buildDataRow(context, 'NIK', user.nik),
-            _buildDataRow(context, 'Alamat', user.alamat),
-            _buildDataRow(context, 'Kecamatan', user.kecamatan),
-            _buildDataRow(context, 'Kelurahan', user.kelurahan),
-            _buildDataRow(context, 'RW/RT', 'RW ${user.rw} / RT ${user.rt}'),
-            _buildDataRow(context, 'No. WA', user.no_wa),
-            _buildDataRow(context, 'Jabatan Mulai', user.jabatanMulai),
-            _buildDataRow(context, 'Jabatan Akhir', user.jabatanAkhir),
+            _buildDataRow(context, 'NIK', widget.user.nik),
+            _buildDataRow(context, 'Alamat', widget.user.alamat),
+            _buildDataRow(context, 'Kecamatan', widget.user.kecamatan),
+            _buildDataRow(context, 'Kelurahan', widget.user.kelurahan),
+            _buildDataRow(
+              context,
+              'RW/RT',
+              'RW ${widget.user.rw} / RT ${widget.user.rt}',
+            ),
+            _buildDataRow(context, 'No. WA', widget.user.no_wa),
+            _buildDataRow(context, 'Jabatan Mulai', widget.user.jabatanMulai),
+            _buildDataRow(context, 'Jabatan Akhir', widget.user.jabatanAkhir),
             const Divider(height: 16, thickness: 1),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
