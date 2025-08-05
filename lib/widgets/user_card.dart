@@ -57,15 +57,6 @@ class _UserCardState extends State<UserCard> {
                 ),
                 Row(
                   children: [
-                    // Menambahkan teks "Status" di sini
-                    const Text(
-                      'Status',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -121,21 +112,46 @@ class _UserCardState extends State<UserCard> {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
+                // Tombol Edit
+                ElevatedButton.icon(
                   onPressed: () {
-                    // Aksi edit
+                    // Aksi untuk mengedit data
                   },
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                  icon: const Icon(Icons.edit, size: 16),
+                  label: const Text('Edit', style: TextStyle(fontSize: 12)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green, // Warna latar hijau
+                    foregroundColor: Colors.white, // Warna teks putih
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    minimumSize: Size.zero, // Menghilangkan padding minimal
+                  ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                const SizedBox(width: 8),
+                // Tombol Delete
+                ElevatedButton.icon(
                   onPressed: () {
-                    // Aksi delete
+                    // Aksi untuk menghapus data
                   },
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                  icon: const Icon(Icons.delete, size: 16),
+                  label: const Text('Delete', style: TextStyle(fontSize: 12)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red, // Warna latar merah
+                    foregroundColor: Colors.white, // Warna teks putih
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    minimumSize: Size.zero, // Menghilangkan padding minimal
+                  ),
                 ),
               ],
             ),

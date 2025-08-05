@@ -115,25 +115,8 @@ class _UserListScreenState extends State<UserListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Daftar Pengguna RT/RW'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              // Ikon search akan memicu filter lokal
-              _applyFilters();
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () {
-              setState(() {
-                _isFilterVisible = !_isFilterVisible;
-              });
-            },
-          ),
-        ],
+      appBar: AppBar(title: const Text('Daftar Pengguna RT/RW'), actions: [
+],
       ),
       body: Column(
         children: [
