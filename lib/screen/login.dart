@@ -111,14 +111,25 @@ class _LoginPageState extends State<LoginPage> {
       ),
       body: Stack(
         children: [
-          // 1. BACKGROUND GRID (ditempatkan paling bawah dan mengisi seluruh layar)
-          Positioned.fill(child: CustomPaint(painter: GridBackground())),
-          // 2. KONTEN HALAMAN (ditempatkan di atas dan bisa digulir)
+          // Background gambar
+          Positioned.fill(
+            child: Image.asset(
+              'lib/img/bg-login-mobile.jpeg', // ganti dengan path gambar background Anda
+              fit: BoxFit.cover,
+            ),
+          ),
+          Positioned(
+            top: -10,
+            left: -50,
+            child: Image.asset(
+              'lib/img/cover-pattern.png', // pattern transparan
+              fit: BoxFit.cover,
+            ),
+          ),
+          // Konten halaman
           SafeArea(
             child: SingleChildScrollView(
-              // --- PERBAIKAN PENTING DI SINI ---
               child: ConstrainedBox(
-                // <-- Tambahkan ConstrainedBox
                 constraints: BoxConstraints(
                   minHeight:
                       MediaQuery.of(context).size.height -
