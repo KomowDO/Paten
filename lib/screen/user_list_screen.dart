@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:paten/models/user.dart';
+import 'package:paten/screen/add_user_screen.dart';
 import 'package:paten/widgets/user_card.dart';
 import 'package:paten/services/api_service.dart';
+import 'package:paten/screen/add_user_screen.dart';
 
 class UserListScreen extends StatefulWidget {
   const UserListScreen({super.key});
@@ -38,22 +40,19 @@ class _UserListScreenState extends State<UserListScreen> {
     setState(() {
       _allUsersFuture = ApiService().getUsers(
         kode_unor_pegawai: _kodeUnorPegawai,
-        // Mengambil semua data tanpa filter tambahan
-        filter_kecamatan: '',
-        filter_kelurahan: '',
-        filter_no_rw: '',
-        filter_no_rt: '',
-        keyword: '',
+        filter_kecamatan: _selectedKecamatan,
+        filter_kelurahan: _selectedKelurahan,
+        filter_no_rw: _rwController.text,
+        filter_no_rt: _rtController.text,
+        keyword: _keywordController.text,
       );
     });
-    // Setelah data diambil, baru kita filter
     _allUsersFuture
         .then((users) {
           _allUsers = users;
-          _applyFilters();
+          _filteredUsers = users; // Tidak perlu filter lokal lagi
         })
         .catchError((error) {
-          // Menangani error jika fetch gagal
           print('Fetch Error: $error');
         });
   }
@@ -115,8 +114,24 @@ class _UserListScreenState extends State<UserListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Daftar Pengguna RT/RW'), actions: [
-],
+      appBar: AppBar(
+        title: const Text('Daftar Pengguna RT/RW'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              _applyFilters();
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.filter_list),
+            onPressed: () {
+              setState(() {
+                _isFilterVisible = !_isFilterVisible;
+              });
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -128,14 +143,22 @@ class _UserListScreenState extends State<UserListScreen> {
               children: [
                 ElevatedButton.icon(
                   onPressed: () {
-                    // Aksi tambah data
+                    // Navigasi ke AddUserScreen dan tunggu hasilnya
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AddUserScreen(),
+                      ),
+                    ).then((value) {
+                      // Setelah kembali dari AddUserScreen, perbarui data
+                      _fetchAndFilterUsers();
+                    });
                   },
                   icon: const Icon(Icons.add),
                   label: const Text('Tambah Data'),
                 ),
                 TextButton.icon(
-                  onPressed:
-                      _fetchAndFilterUsers, // Memuat ulang data dari API dan filter
+                  onPressed: _fetchAndFilterUsers,
                   icon: const Icon(Icons.refresh),
                   label: const Text('Refresh Data'),
                 ),

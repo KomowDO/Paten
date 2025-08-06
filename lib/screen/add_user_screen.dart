@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:dio/dio.dart';
 import 'package:paten/services/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 
-class TambahPenggunaScreen extends StatefulWidget {
-  const TambahPenggunaScreen({super.key});
+class AddUserScreen extends StatefulWidget {
+  const AddUserScreen({super.key});
 
   @override
-  _TambahPenggunaScreenState createState() => _TambahPenggunaScreenState();
+  _AddUserScreenState createState() => _AddUserScreenState();
 }
 
-class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
+class _AddUserScreenState extends State<AddUserScreen> {
   final _formKey = GlobalKey<FormState>();
   final ApiService _apiService = ApiService();
 
@@ -36,8 +38,7 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
   void initState() {
     super.initState();
     _apiService.addInterceptors();
-    _apiService.removeBearerToken();
-    print('[_TambahPenggunaScreenState] initState dipanggil.');
+    print('[_AddUserScreenState] initState dipanggil.');
     _fetchJabatanOptions();
   }
 
@@ -55,32 +56,51 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
   }
 
   Future<void> _fetchJabatanOptions() async {
-    print('[_TambahPenggunaScreenState] _fetchJabatanOptions dipanggil.');
+    print('[_AddUserScreenState] _fetchJabatanOptions dipanggil.');
     setState(() {
       _isJabatanLoading = true;
     });
+
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedData = prefs.getStringList('jabatan_options');
+
+      if (cachedData != null && cachedData.isNotEmpty) {
+        setState(() {
+          _jabatanOptions = cachedData;
+        });
+        print('[_AddUserScreenState] Menggunakan data jabatan dari cache.');
+      }
+
+      // Selalu coba panggil API untuk memastikan data terbaru
+      _apiService.removeBearerToken();
+      print('Token bearer telah dilepas sebelum memuat opsi jabatan.');
       final fetchedOptions = await _apiService.fetchJabatanOptions();
-      print(
-        '[_TambahPenggunaScreenState] Data jabatan diterima: $fetchedOptions',
-      );
-      setState(() {
-        _jabatanOptions = fetchedOptions;
-      });
-      print(
-        '[_TambahPenggunaScreenState] _jabatanOptions setelah update: ${_jabatanOptions.length} item',
-      );
+
+      // Jika data dari API berbeda dengan cache, perbarui
+      if (!listEquals(fetchedOptions, _jabatanOptions)) {
+        setState(() {
+          _jabatanOptions = fetchedOptions;
+        });
+        await prefs.setStringList('jabatan_options', fetchedOptions);
+        print(
+          '[_AddUserScreenState] Data jabatan diperbarui dari API dan disimpan ke cache.',
+        );
+      }
     } catch (e) {
-      print('[_TambahPenggunaScreenState] Error saat memuat jabatan: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memuat daftar jabatan: ${e.toString()}')),
-      );
+      print('[_AddUserScreenState] Error saat memuat jabatan: $e');
+      // Jika ada error dan tidak ada data di cache, tampilkan pesan
+      if (_jabatanOptions.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal memuat daftar jabatan: ${e.toString()}'),
+          ),
+        );
+      }
     } finally {
       setState(() {
         _isJabatanLoading = false;
-        print(
-          '[_TambahPenggunaScreenState] _isJabatanLoading diatur ke false.',
-        );
+        print('[_AddUserScreenState] _isJabatanLoading diatur ke false.');
       });
     }
   }
@@ -129,7 +149,7 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
 
       try {
         print('Simulasi: Menambah data ke API: $newData');
-        await Future.delayed(Duration(seconds: 2));
+        await Future.delayed(const Duration(seconds: 2));
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -168,7 +188,6 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          // START: Wrapper SafeArea ditambahkan di sini
           : SafeArea(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16.0),
@@ -270,14 +289,10 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
                               Navigator.of(context).pop();
                             },
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(
-                                0xFF03038E,
-                              ), // warna teks biru solid
-                              backgroundColor: Colors.white, // background putih
+                              foregroundColor: const Color(0xFF03038E),
+                              backgroundColor: Colors.white,
                               side: const BorderSide(
-                                color: Color(
-                                  0xFF03038E,
-                                ), // warna outline biru solid
+                                color: Color(0xFF03038E),
                                 width: 2,
                               ),
                               padding: const EdgeInsets.symmetric(
@@ -332,7 +347,6 @@ class _TambahPenggunaScreenState extends State<TambahPenggunaScreen> {
                 ),
               ),
             ),
-      // END: Wrapper SafeArea
     );
   }
 

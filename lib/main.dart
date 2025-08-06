@@ -56,8 +56,8 @@ class MyApp extends StatelessWidget {
         ),
       ),
       //home: LoginPage(), // Halaman awal aplikasi Anda
-      // home: TambahPenggunaScreen(),
-      // home: UbahDataScreen(),
+      //home: AddUserScreen(),
+      // home: EditUserScreen(),
       // home: ResetPasswordScreen(),
       home: UserListScreen(),
     );

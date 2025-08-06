@@ -49,7 +49,6 @@ class _UserCardState extends State<UserCard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Baris nama pengguna
                         Text(
                           widget.user.nama,
                           style: const TextStyle(
@@ -57,7 +56,6 @@ class _UserCardState extends State<UserCard> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        // Baris jabatan dan RT
                         Row(
                           children: [
                             Text(
@@ -65,17 +63,46 @@ class _UserCardState extends State<UserCard> {
                               style: TextStyle(
                                 color: Colors.grey[800],
                                 fontSize: 14,
-                                fontWeight: FontWeight.bold,
+                                //fontWeight: FontWeight.bold,
                               ),
                             ),
-                            // Mengurangi jarak dari 12.0 menjadi 8.0
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 4),
                             Text(
-                              ': ${widget.user.rt}',
+                              '${widget.user.rt}',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey[800],
-                                fontWeight: FontWeight.bold,
+                                //fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '/ RW ${widget.user.rw}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[800],
+                                //fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 1),
+                        Text(
+                          'Kecamatan ${widget.user.kecamatan}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[800],
+                            //fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Text(
+                              'Kelurahan ${widget.user.kelurahan}',
+                              style: TextStyle(
+                                //fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: Colors.grey[800],
                               ),
                             ),
                           ],
@@ -122,9 +149,7 @@ class _UserCardState extends State<UserCard> {
                         activeColor: Colors.white,
                         inactiveTrackColor: Colors.grey[300],
                         activeTrackColor: Colors.blue,
-                        thumbColor: MaterialStateProperty.all(
-                          _isStatusActive ? Colors.white : Colors.white,
-                        ),
+                        thumbColor: MaterialStateProperty.all(Colors.white),
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                     ],
@@ -152,11 +177,9 @@ class _UserCardState extends State<UserCard> {
         const Divider(height: 6, thickness: 1),
         _buildDataRow(context, 'NIK', widget.user.nik),
         _buildDataRow(context, 'Alamat', widget.user.alamat),
-        _buildDataRow(
-          context,
-          'Wilayah',
-          'Kec. ${widget.user.kecamatan} / Kel. ${widget.user.kelurahan}',
-        ),
+        _buildDataRow(context, 'Kecamatan', widget.user.kecamatan),
+        _buildDataRow(context, 'Kelurahan', widget.user.kelurahan),
+        _buildDataRow(context, 'RT', 'RT ${widget.user.rt}'),
         _buildDataRow(context, 'RW', 'RW ${widget.user.rw}'),
         _buildDataRow(context, 'No. WA', widget.user.no_wa),
         _buildDataRow(context, 'Jabatan Mulai', widget.user.jabatanMulai),
