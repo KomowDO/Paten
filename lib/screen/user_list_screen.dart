@@ -235,7 +235,7 @@ class _UserListScreenState extends State<UserListScreen> {
           TextField(
             controller: _keywordController,
             decoration: const InputDecoration(
-              hintText: 'Parameter Search...',
+              hintText: 'Cari berdasarkan nama, NIK, atau alamat',
               border: OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               suffixIcon: Icon(Icons.search),
