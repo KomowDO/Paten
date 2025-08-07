@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'dart:convert';
-import 'package:paten/models/user.dart'; // Impor model User
+import 'package:paten/models/user.dart';
 
 class ApiService {
   final Dio _dio;
@@ -12,7 +12,7 @@ class ApiService {
   final String _userListApiUrl =
       'https://script.google.com/macros/s/AKfycbz6i1pWIsHXwjbJVGrD3WFN8iNmFvEe23yZD0brdHCC-7zewdFHrIZ_r5QGORCtIAc00w/exec';
 
-  // URL utama untuk otentikasi (login) - URL yang diubah untuk pengujian GET
+  // URL utama untuk otentikasi (login) - GET method
   final String _authApiUrl =
       'https://script.google.com/macros/s/AKfycbwG-v3LTRy6GHhd1h930JSBcvRa3_6tSnqUvy2m4xBpLoSE2esNQIgkDcK2D0m8pRKisg/exec';
 

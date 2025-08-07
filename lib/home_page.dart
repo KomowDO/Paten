@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:paten/screen/login.dart'; // Sesuaikan dengan path file login Anda
+import 'package:paten/screen/login.dart';
 
 class HomePage extends StatelessWidget {
   final String username;
