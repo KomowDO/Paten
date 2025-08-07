@@ -1,17 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:paten/screen/login.dart';
-// import 'package:paten/screen/add_user_screen.dart';
-//import 'package:paten/screen/edit_user_screen.dart';
-//import 'package:paten/screen/reset_password_screen.dart';
-//import 'package:paten/screen/user_list_screen.dart';
-import 'package:paten/services/api_service.dart'; // Penting: Import ApiService
+import 'package:paten/services/api_service.dart';
+import 'package:paten/screen/splash_screen.dart'; // Tambahkan baris ini
 
 void main() {
-  // Pastikan Flutter binding diinisialisasi sebelum menggunakan service seperti shared_preferences
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inisialisasi interceptor Dio untuk logging dan debugging API
-  // Ini harus dipanggil sekali di awal aplikasi
   ApiService().addInterceptors();
 
   runApp(const MyApp());
@@ -24,13 +18,13 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Aplikasi PATEN',
-      debugShowCheckedModeBanner: false, // Menghilangkan banner "DEBUG"
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF03038E), // Warna AppBar solid biru
-          foregroundColor: Colors.white, // Warna teks AppBar
+          backgroundColor: Color(0xFF03038E),
+          foregroundColor: Colors.white,
         ),
         inputDecorationTheme: InputDecorationTheme(
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
@@ -55,11 +49,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: LoginPage(), // Halaman awal aplikasi Anda
-      //home: AddUserScreen(),
-      // home: EditUserScreen(),
-      // home: ResetPasswordScreen(),
-      //home: UserListScreen(),
+      home: const SplashScreen(), // Ganti LoginPage() dengan SplashScreen()
     );
   }
 }
