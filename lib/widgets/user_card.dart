@@ -205,6 +205,7 @@ class _UserCardState extends State<UserCard> {
               ),
             ),
 
+            const SizedBox(width: 8),
             ElevatedButton.icon(
               onPressed: () {
                 // Aksi untuk mereset password

@@ -30,6 +30,9 @@ class _UserListScreenState extends State<UserListScreen> {
   // Data list yang akan ditampilkan setelah difilter
   List<User> _filteredUsers = [];
 
+  int _currentPage = 0;
+  final int _pageSize = 10;
+
   @override
   void initState() {
     super.initState();
@@ -188,11 +191,47 @@ class _UserListScreenState extends State<UserListScreen> {
                       child: Text('Tidak ada data pengguna.'),
                     );
                   }
-                  return ListView.builder(
-                    itemCount: _filteredUsers.length,
-                    itemBuilder: (context, index) {
-                      return UserCard(user: _filteredUsers[index]);
-                    },
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: _pagedUsers.length,
+                          itemBuilder: (context, index) {
+                            return UserCard(user: _pagedUsers[index]);
+                          },
+                        ),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          TextButton(
+                            onPressed: _currentPage > 0
+                                ? () {
+                                    setState(() {
+                                      _currentPage--;
+                                    });
+                                  }
+                                : null,
+                            child: const Text('Previous'),
+                          ),
+                          Text(
+                            'Halaman ${_currentPage + 1} dari ${(_filteredUsers.length / _pageSize).ceil()}',
+                          ),
+                          TextButton(
+                            onPressed:
+                                (_currentPage + 1) * _pageSize <
+                                    _filteredUsers.length
+                                ? () {
+                                    setState(() {
+                                      _currentPage++;
+                                    });
+                                  }
+                                : null,
+                            child: const Text('Next'),
+                          ),
+                        ],
+                      ),
+                    ],
                   );
                 }
               },
@@ -369,6 +408,15 @@ class _UserListScreenState extends State<UserListScreen> {
         }).toList(),
         onChanged: onChanged,
       ),
+    );
+  }
+
+  List<User> get _pagedUsers {
+    final start = _currentPage * _pageSize;
+    final end = start + _pageSize;
+    return _filteredUsers.sublist(
+      start,
+      end > _filteredUsers.length ? _filteredUsers.length : end,
     );
   }
 }

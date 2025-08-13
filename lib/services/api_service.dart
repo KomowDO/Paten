@@ -64,7 +64,7 @@ class ApiService {
   // Metode untuk mengambil daftar pengguna RT/RW dengan filter
   Future<List<User>> getUsers({
     int page = 1,
-    int limit = 10,
+    int limit = 45,
     required String kode_unor_pegawai,
     String? filter_kecamatan,
     String? filter_kelurahan,
