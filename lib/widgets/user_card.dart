@@ -204,6 +204,27 @@ class _UserCardState extends State<UserCard> {
                 minimumSize: Size.zero,
               ),
             ),
+
+            ElevatedButton.icon(
+              onPressed: () {
+                // Aksi untuk mereset password
+              },
+              icon: const Icon(Icons.lock_reset, size: 16),
+              label: const Text(
+                'Reset Password',
+                style: TextStyle(fontSize: 12),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                minimumSize: Size.zero,
+              ),
+            ),
+
             const SizedBox(width: 8),
             ElevatedButton.icon(
               onPressed: () {

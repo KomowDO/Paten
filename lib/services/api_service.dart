@@ -16,7 +16,7 @@ class ApiService {
   final String _authApiUrl =
       'https://script.google.com/macros/s/AKfycbwG-v3LTRy6GHhd1h930JSBcvRa3_6tSnqUvy2m4xBpLoSE2esNQIgkDcK2D0m8pRKisg/exec';
 
-  // JWT Token yang Anda berikan
+  // JWT Token UNTUK LIST USER
   static const String _jwtToken =
       'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1NTA1NDI5NH0.2RTZ3pLPEDox8ti1MlcA2chwdlm3XC4dKbvh-F1xZu4';
 
