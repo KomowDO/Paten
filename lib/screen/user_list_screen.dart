@@ -1,6 +1,8 @@
+// File: lib/screen/user_list_screen.dart
 import 'package:flutter/material.dart';
 import 'package:paten/models/user.dart';
 import 'package:paten/screen/add_user_screen.dart';
+import 'package:paten/screen/edit_user_screen.dart'; // Import EditUserScreen
 import 'package:paten/widgets/user_card.dart';
 import 'package:paten/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -76,6 +78,19 @@ class _UserListScreenState extends State<UserListScreen> {
       _currentPage--;
     });
     _fetchUsers();
+  }
+
+  Future<void> _onEditUser(User user) async {
+    // Navigasi ke EditUserScreen dan tunggu hasilnya
+    final bool? shouldRefresh = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => EditUserScreen(user: user)),
+    );
+
+    // Jika EditUserScreen mengembalikan `true`, refresh daftar pengguna
+    if (shouldRefresh == true) {
+      _fetchUsers();
+    }
   }
 
   Future<void> _onResetPassword(User user) async {
@@ -251,10 +266,8 @@ class _UserListScreenState extends State<UserListScreen> {
                           itemBuilder: (context, index) {
                             return UserCard(
                               user: users[index],
-                              onEdit: (user) {
-                                // TODO: Implement navigation to edit screen
-                                print('Edit user: ${user.nama}');
-                              },
+                              onEdit:
+                                  _onEditUser, // Meneruskan callback untuk navigasi
                               onResetPassword: _onResetPassword,
                               onDelete: _onDeleteUser,
                             );

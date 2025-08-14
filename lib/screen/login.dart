@@ -1,6 +1,6 @@
 import "package:flutter/material.dart";
 import 'package:paten/services/api_service.dart';
-import '../home_page.dart';
+import 'package:paten/screen/user_list_screen.dart'; // Ganti import HomePage dengan UserListScreen
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Kelas CustomPainter untuk background grid
@@ -74,24 +74,28 @@ class _LoginPageState extends State<LoginPage> {
       final result = await apiService.login(username, password);
 
       if (result['success']) {
+        // Asumsi API Anda mengembalikan 'access_token' atau 'refresh_token'.
         final String? accessToken = result['access_token'];
 
         if (accessToken != null) {
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('access_token', accessToken);
+          await prefs.setString(
+            'refresh_token',
+            accessToken,
+          ); // Menyimpan token
           await prefs.setString('username', username);
-          print('Login berhasil! Access Token disimpan.');
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message'] ?? 'Login berhasil!')),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(result['message'] ?? 'Login berhasil!')),
+            );
 
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => HomePage(username: username),
-            ),
-          );
+            // Navigasi ke UserListScreen setelah login berhasil
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const UserListScreen()),
+            );
+          }
         } else {
           setState(() {
             _errorMessage =
@@ -109,9 +113,11 @@ class _LoginPageState extends State<LoginPage> {
         _errorMessage = e.toString();
       });
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -119,13 +125,9 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      // Penting: Mematikan resizeToAvoidBottomInset untuk mencegah Scaffold mengubah ukuran.
-      // Dengan begini, background dan footer akan tetap statis, dan kita akan menangani konten
-      // login secara manual di dalam SingleChildScrollView.
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          // Background gambar
           Positioned.fill(
             child: Image.asset(
               'lib/img/bg-login-mobile.jpeg',
@@ -137,16 +139,13 @@ class _LoginPageState extends State<LoginPage> {
             left: -50,
             child: Image.asset('lib/img/cover-pattern.png', fit: BoxFit.cover),
           ),
-          // Konten halaman utama
           SafeArea(
             child: SingleChildScrollView(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  // Dapatkan tinggi keyboard
                   final keyboardHeight = MediaQuery.of(
                     context,
                   ).viewInsets.bottom;
-                  // Hitung tinggi layar yang tersedia (dikurangi padding dan keyboard)
                   final availableHeight =
                       MediaQuery.of(context).size.height -
                       MediaQuery.of(context).padding.top -
@@ -154,10 +153,7 @@ class _LoginPageState extends State<LoginPage> {
                       keyboardHeight;
 
                   return ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight:
-                          availableHeight, // Atur minHeight ke tinggi yang tersedia
-                    ),
+                    constraints: BoxConstraints(minHeight: availableHeight),
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
@@ -173,7 +169,6 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          // Kolom password dengan toggle visibilitas
                           TextField(
                             controller: _passwordController,
                             decoration: InputDecoration(
