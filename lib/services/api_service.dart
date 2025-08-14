@@ -1,3 +1,4 @@
+// File: lib/services/api_service.dart
 import 'package:dio/dio.dart';
 import 'dart:convert';
 import 'package:paten/models/user.dart';
@@ -8,17 +9,19 @@ class ApiService {
   final String _jabatanApiUrl =
       'https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLiSt4bPhW8QIfEakvSkorTbO5FA3X7ZYneP2cHiuiTi5F2y7Mf3DxwazdIGK4PyfCF05E1Mc4CvvgHAM4N5SyjXOAfCdzhRn_Jy7npxsYFz41sMlC5u6raDOFdARDfRr2OkBKJLO3X7iKCMEApT6RAXZ8f0nnSm2TjqKwnXC7ULvW6UpSC6fXXdgBZZRU9PlAz69IDx5VIhBiFwWLoljY6iQ6hPNk8ZSVg1g3m90IA0IWZrzInEwnff0MdJo52tv9y3W6BgFubAE1cNjv1bACokJ2VKw&lib=M_AeKjZaFOlawafwJcLPaaIaJ-zFb6PIO';
 
-  // URL untuk list pengguna RT/RW
   final String _userListApiUrl =
       'https://script.google.com/macros/s/AKfycbz6i1pWIsHXwjbJVGrD3WFN8iNmFvEe23yZD0brdHCC-7zewdFHrIZ_r5QGORCtIAc00w/exec';
 
-  // URL utama untuk otentikasi (login) - GET method
   final String _authApiUrl =
       'https://script.google.com/macros/s/AKfycbwG-v3LTRy6GHhd1h930JSBcvRa3_6tSnqUvy2m4xBpLoSE2esNQIgkDcK2D0m8pRKisg/exec';
 
-  // JWT Token UNTUK LIST USER
-  static const String _jwtToken =
-      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1NTA1NDI5NH0.2RTZ3pLPEDox8ti1MlcA2chwdlm3XC4dKbvh-F1xZu4';
+  final String _mainApiUrl =
+      'https://script.google.com/macros/s/AKfycbxcQi5y7UiatE61MQgFl9TGA7Bli_u303NjpSvxbz7d-zKNPQb7AXiWCMT9dXpm6CTu/exec';
+
+  // Variabel ini diubah dari privat (_jwtToken) menjadi publik (jwtToken)
+  // agar bisa diakses dari file lain.
+  static const String jwtToken =
+      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1NTE1MTA4MX0.zlnuxREIkSZMaBHRPlX83y7QOzjBAR8XwpTY07VilVg';
 
   ApiService() : _dio = Dio() {
     addInterceptors();
@@ -61,7 +64,6 @@ class ApiService {
     );
   }
 
-  // Metode untuk mengambil daftar pengguna RT/RW dengan filter
   Future<List<User>> getUsers({
     int page = 1,
     int limit = 45,
@@ -74,7 +76,7 @@ class ApiService {
   }) async {
     try {
       Map<String, dynamic> queryParameters = {
-        'jwt_token': _jwtToken,
+        'jwt_token': jwtToken,
         'page': page,
         'limit': limit,
         'kode_unor_pegawai': kode_unor_pegawai,
@@ -130,7 +132,6 @@ class ApiService {
     }
   }
 
-  // Metode simulasi untuk update data user (tidak terkait login)
   Future<Response> updateUserData(Map<String, dynamic> data) async {
     print("Simulasi: Mengirim data ke API update: $data");
     await Future.delayed(Duration(seconds: 1));
@@ -141,7 +142,6 @@ class ApiService {
     );
   }
 
-  // Metode untuk mengambil daftar jabatan (sesuai permintaan, tidak diubah)
   Future<List<String>> fetchJabatanOptions() async {
     try {
       print('Headers sebelum request: ${_dio.options.headers}');
@@ -175,19 +175,15 @@ class ApiService {
     }
   }
 
-  // Metode untuk menghapus Bearer token (jika digunakan untuk otentikasi setelah login)
   void removeBearerToken() {
     _dio.options.headers.remove('Authorization');
     print(_dio.options.headers);
   }
 
-  // Metode untuk mendapatkan token secara terpisah (jika API menyediakan endpoint GET untuk ini)
   Future<String?> fetchBearerToken() async {
-    // ... kode yang tidak berubah
     return null;
   }
 
-  // Metode utama untuk proses login, diubah untuk menggunakan GET
   Future<Map<String, dynamic>> login(String username, String password) async {
     if (username.isEmpty || password.isEmpty) {
       return {
@@ -197,7 +193,6 @@ class ApiService {
     }
 
     try {
-      // Perubahan ada di sini: Menggunakan dio.get dan queryParameters
       final response = await _dio.get(
         _authApiUrl,
         queryParameters: {"user": username, "password": password},
@@ -229,9 +224,6 @@ class ApiService {
             if (decoded is Map<String, dynamic>) {
               parsedResponse = decoded;
             } else {
-              print(
-                'Decoded login response is not a Map: ${decoded.runtimeType}',
-              );
               return {
                 'success': false,
                 'message':
@@ -239,7 +231,6 @@ class ApiService {
               };
             }
           } catch (e) {
-            print('Failed to parse JSON string response for login: $e');
             return {
               'success': false,
               'message':
@@ -249,9 +240,6 @@ class ApiService {
         } else if (response.data is Map<String, dynamic>) {
           parsedResponse = response.data;
         } else {
-          print(
-            'Unexpected response data type for login: ${response.data.runtimeType}',
-          );
           return {
             'success': false,
             'message': 'Format respons akhir tidak dikenal.',
@@ -298,7 +286,6 @@ class ApiService {
     } on DioException catch (e) {
       print('Error Dio login: $e');
       if (e.response != null) {
-        print('Error Response Data (Login): ${e.response?.data}');
         if (e.response?.data is Map<String, dynamic>) {
           return {
             'success': false,
@@ -339,6 +326,67 @@ class ApiService {
     } catch (e) {
       print('Error tak terduga login: $e');
       return {'success': false, 'message': 'Terjadi kesalahan tak terduga: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> resetPassword(
+    String jwtToken,
+    String nik,
+  ) async {
+    try {
+      final response = await _dio.get(
+        _mainApiUrl,
+        queryParameters: {
+          'endpoint': 'reset_password',
+          'jwt_token': jwtToken,
+          'nik': nik,
+        },
+      );
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else {
+        return {
+          'success': false,
+          'message': 'Invalid response format from server.',
+        };
+      }
+    } on DioException catch (e) {
+      String message = 'Failed to reset password: ${e.message}';
+      if (e.response != null && e.response!.data != null) {
+        message = e.response!.data['message'] ?? message;
+      }
+      return {'success': false, 'message': message};
+    } catch (e) {
+      return {'success': false, 'message': 'An unexpected error occurred: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> deleteUser(String jwtToken, String nik) async {
+    try {
+      final response = await _dio.get(
+        _mainApiUrl,
+        queryParameters: {
+          'endpoint': 'delete_user',
+          'jwt_token': jwtToken,
+          'nik': nik,
+        },
+      );
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else {
+        return {
+          'success': false,
+          'message': 'Invalid response format from server.',
+        };
+      }
+    } on DioException catch (e) {
+      String message = 'Failed to delete user: ${e.message}';
+      if (e.response != null && e.response!.data != null) {
+        message = e.response!.data['message'] ?? message;
+      }
+      return {'success': false, 'message': message};
+    } catch (e) {
+      return {'success': false, 'message': 'An unexpected error occurred: $e'};
     }
   }
 }

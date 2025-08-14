@@ -3,7 +3,7 @@ import 'package:paten/models/user.dart';
 import 'package:paten/screen/add_user_screen.dart';
 import 'package:paten/widgets/user_card.dart';
 import 'package:paten/services/api_service.dart';
-import 'package:paten/screen/add_user_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class UserListScreen extends StatefulWidget {
   const UserListScreen({super.key});
@@ -23,87 +23,15 @@ class _UserListScreenState extends State<UserListScreen> {
 
   final String _kodeUnorPegawai = '07.13.09.03';
 
-  // Data list asli dari API
-  late Future<List<User>> _allUsersFuture;
-  List<User> _allUsers = [];
-
-  // Data list yang akan ditampilkan setelah difilter
-  List<User> _filteredUsers = [];
-
-  int _currentPage = 0;
+  late Future<List<User>> _usersFuture;
+  int _currentPage = 1;
   final int _pageSize = 10;
+  List<User> _currentUsers = [];
 
   @override
   void initState() {
     super.initState();
-    _fetchAndFilterUsers();
-  }
-
-  void _fetchAndFilterUsers() {
-    setState(() {
-      _allUsersFuture = ApiService().getUsers(
-        kode_unor_pegawai: _kodeUnorPegawai,
-        filter_kecamatan: _selectedKecamatan,
-        filter_kelurahan: _selectedKelurahan,
-        filter_no_rw: _rwController.text,
-        filter_no_rt: _rtController.text,
-        keyword: _keywordController.text,
-      );
-    });
-    _allUsersFuture
-        .then((users) {
-          _allUsers = users;
-          _filteredUsers = users; // Tidak perlu filter lokal lagi
-        })
-        .catchError((error) {
-          print('Fetch Error: $error');
-        });
-  }
-
-  void _applyFilters() {
-    setState(() {
-      _filteredUsers = _allUsers.where((user) {
-        final matchKecamatan =
-            _selectedKecamatan == null ||
-            _selectedKecamatan!.isEmpty ||
-            user.kecamatan.toLowerCase() == _selectedKecamatan!.toLowerCase();
-
-        final matchKelurahan =
-            _selectedKelurahan == null ||
-            _selectedKelurahan!.isEmpty ||
-            user.kelurahan.toLowerCase() == _selectedKelurahan!.toLowerCase();
-
-        final rwInput = _rwController.text.trim();
-        final matchRW = rwInput.isEmpty || user.rw.toString() == rwInput;
-
-        final rtInput = _rtController.text.trim();
-        final matchRT = rtInput.isEmpty || user.rt.toString() == rtInput;
-
-        final keywordInput = _keywordController.text.trim();
-        final matchKeyword =
-            keywordInput.isEmpty ||
-            user.nama.toLowerCase().contains(keywordInput.toLowerCase()) ||
-            user.nik.toLowerCase().contains(keywordInput.toLowerCase()) ||
-            user.alamat.toLowerCase().contains(keywordInput.toLowerCase());
-
-        return matchKecamatan &&
-            matchKelurahan &&
-            matchRW &&
-            matchRT &&
-            matchKeyword;
-      }).toList();
-    });
-  }
-
-  void _resetFilters() {
-    setState(() {
-      _selectedKecamatan = null;
-      _selectedKelurahan = null;
-      _rwController.clear();
-      _rtController.clear();
-      _keywordController.clear();
-    });
-    _applyFilters();
+    _fetchUsers();
   }
 
   @override
@@ -114,18 +42,146 @@ class _UserListScreenState extends State<UserListScreen> {
     super.dispose();
   }
 
+  void _fetchUsers() {
+    setState(() {
+      _usersFuture = ApiService().getUsers(
+        page: _currentPage,
+        limit: _pageSize,
+        kode_unor_pegawai: _kodeUnorPegawai,
+        filter_kecamatan: _selectedKecamatan,
+        filter_kelurahan: _selectedKelurahan,
+        filter_no_rw: _rwController.text,
+        filter_no_rt: _rtController.text,
+        keyword: _keywordController.text,
+      );
+      _usersFuture.then((users) {
+        if (mounted) {
+          setState(() {
+            _currentUsers = users;
+          });
+        }
+      });
+    });
+  }
+
+  void _onNextPage() {
+    setState(() {
+      _currentPage++;
+    });
+    _fetchUsers();
+  }
+
+  void _onPreviousPage() {
+    setState(() {
+      _currentPage--;
+    });
+    _fetchUsers();
+  }
+
+  Future<void> _onResetPassword(User user) async {
+    const jwtToken = ApiService.jwtToken;
+
+    final bool? shouldReset = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Reset Password'),
+          content: Text(
+            'Apakah Anda yakin ingin mereset password untuk ${user.nama}?',
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Batal'),
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+            ),
+            TextButton(
+              child: const Text('Reset'),
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldReset == true) {
+      final result = await ApiService().resetPassword(jwtToken, user.nik);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Password berhasil direset'),
+            backgroundColor: result['status'] == true
+                ? Colors.green
+                : Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _onDeleteUser(User user) async {
+    final isConfirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hapus Pengguna'),
+        content: Text(
+          'Apakah Anda yakin ingin menghapus pengguna ${user.nama}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (isConfirmed == true) {
+      const jwtToken = ApiService.jwtToken;
+
+      final result = await ApiService().deleteUser(jwtToken, user.nik);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Pengguna berhasil dihapus'),
+            backgroundColor: result['status'] == true
+                ? Colors.green
+                : Colors.red,
+          ),
+        );
+      }
+      _fetchUsers();
+    }
+  }
+
+  void _resetFilters() {
+    setState(() {
+      _selectedKecamatan = null;
+      _selectedKelurahan = null;
+      _rwController.clear();
+      _rtController.clear();
+      _keywordController.clear();
+      _currentPage = 1;
+    });
+    _fetchUsers();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Daftar Pengguna RT/RW'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              _applyFilters();
-            },
-          ),
+          IconButton(icon: const Icon(Icons.search), onPressed: _fetchUsers),
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: () {
@@ -146,22 +202,20 @@ class _UserListScreenState extends State<UserListScreen> {
               children: [
                 ElevatedButton.icon(
                   onPressed: () {
-                    // Navigasi ke AddUserScreen dan tunggu hasilnya
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => const AddUserScreen(),
                       ),
                     ).then((value) {
-                      // Setelah kembali dari AddUserScreen, perbarui data
-                      _fetchAndFilterUsers();
+                      _fetchUsers();
                     });
                   },
                   icon: const Icon(Icons.add),
                   label: const Text('Tambah Data'),
                 ),
                 TextButton.icon(
-                  onPressed: _fetchAndFilterUsers,
+                  onPressed: _fetchUsers,
                   icon: const Icon(Icons.refresh),
                   label: const Text('Refresh Data'),
                 ),
@@ -170,7 +224,7 @@ class _UserListScreenState extends State<UserListScreen> {
           ),
           Expanded(
             child: FutureBuilder<List<User>>(
-              future: _allUsersFuture,
+              future: _usersFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -185,19 +239,25 @@ class _UserListScreenState extends State<UserListScreen> {
                       ),
                     ),
                   );
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text('Tidak ada data pengguna.'));
                 } else {
-                  if (_filteredUsers.isEmpty) {
-                    return const Center(
-                      child: Text('Tidak ada data pengguna.'),
-                    );
-                  }
+                  final users = snapshot.data!;
                   return Column(
                     children: [
                       Expanded(
                         child: ListView.builder(
-                          itemCount: _pagedUsers.length,
+                          itemCount: users.length,
                           itemBuilder: (context, index) {
-                            return UserCard(user: _pagedUsers[index]);
+                            return UserCard(
+                              user: users[index],
+                              onEdit: (user) {
+                                // TODO: Implement navigation to edit screen
+                                print('Edit user: ${user.nama}');
+                              },
+                              onResetPassword: _onResetPassword,
+                              onDelete: _onDeleteUser,
+                            );
                           },
                         ),
                       ),
@@ -205,27 +265,15 @@ class _UserListScreenState extends State<UserListScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           TextButton(
-                            onPressed: _currentPage > 0
-                                ? () {
-                                    setState(() {
-                                      _currentPage--;
-                                    });
-                                  }
+                            onPressed: _currentPage > 1
+                                ? _onPreviousPage
                                 : null,
                             child: const Text('Previous'),
                           ),
-                          Text(
-                            'Halaman ${_currentPage + 1} dari ${(_filteredUsers.length / _pageSize).ceil()}',
-                          ),
+                          Text('Halaman $_currentPage'),
                           TextButton(
-                            onPressed:
-                                (_currentPage + 1) * _pageSize <
-                                    _filteredUsers.length
-                                ? () {
-                                    setState(() {
-                                      _currentPage++;
-                                    });
-                                  }
+                            onPressed: users.length == _pageSize
+                                ? _onNextPage
                                 : null,
                             child: const Text('Next'),
                           ),
@@ -303,24 +351,25 @@ class _UserListScreenState extends State<UserListScreen> {
               suffixIcon: Icon(Icons.search),
             ),
             onSubmitted: (value) {
-              _applyFilters();
+              _fetchUsers();
             },
           ),
           const SizedBox(height: 8),
           _buildFilterDropdown(
             label: 'Kecamatan',
-            items: ['PINANG', 'KECAMATAN LAIN'],
+            items: const ['PINANG', 'KECAMATAN LAIN'],
             value: _selectedKecamatan,
             onChanged: (String? newValue) {
               setState(() {
                 _selectedKecamatan = newValue;
+                _selectedKelurahan = null;
               });
             },
           ),
           const SizedBox(height: 8),
           _buildFilterDropdown(
             label: 'Kelurahan',
-            items: ['NEROKTOG', 'KELURAHAN LAIN'],
+            items: const ['NEROKTOG', 'KELURAHAN LAIN'],
             value: _selectedKelurahan,
             onChanged: (String? newValue) {
               setState(() {
@@ -366,16 +415,12 @@ class _UserListScreenState extends State<UserListScreen> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               ElevatedButton(
-                onPressed: () {
-                  _applyFilters();
-                },
+                onPressed: _fetchUsers,
                 child: const Text('Terapkan Filter'),
               ),
               const SizedBox(width: 8),
               OutlinedButton(
-                onPressed: () {
-                  _resetFilters();
-                },
+                onPressed: _resetFilters,
                 child: const Text('Reset'),
               ),
             ],
@@ -408,15 +453,6 @@ class _UserListScreenState extends State<UserListScreen> {
         }).toList(),
         onChanged: onChanged,
       ),
-    );
-  }
-
-  List<User> get _pagedUsers {
-    final start = _currentPage * _pageSize;
-    final end = start + _pageSize;
-    return _filteredUsers.sublist(
-      start,
-      end > _filteredUsers.length ? _filteredUsers.length : end,
     );
   }
 }

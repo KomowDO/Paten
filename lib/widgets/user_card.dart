@@ -1,10 +1,20 @@
+// File: lib/widgets/user_card.dart
 import 'package:flutter/material.dart';
 import 'package:paten/models/user.dart';
 
 class UserCard extends StatefulWidget {
   final User user;
+  final Function(User)? onEdit;
+  final Function(User user)? onResetPassword;
+  final Function(User)? onDelete;
 
-  const UserCard({super.key, required this.user});
+  const UserCard({
+    super.key,
+    required this.user,
+    this.onEdit,
+    this.onResetPassword,
+    this.onDelete,
+  });
 
   @override
   State<UserCard> createState() => _UserCardState();
@@ -24,6 +34,7 @@ class _UserCardState extends State<UserCard> {
     setState(() {
       _isStatusActive = value;
     });
+    // TODO: Tambahkan logika untuk memanggil API update status di sini
   }
 
   @override
@@ -63,7 +74,6 @@ class _UserCardState extends State<UserCard> {
                               style: TextStyle(
                                 color: Colors.grey[800],
                                 fontSize: 14,
-                                //fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(width: 4),
@@ -72,7 +82,6 @@ class _UserCardState extends State<UserCard> {
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey[800],
-                                //fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(width: 4),
@@ -81,7 +90,6 @@ class _UserCardState extends State<UserCard> {
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey[800],
-                                //fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
@@ -92,7 +100,6 @@ class _UserCardState extends State<UserCard> {
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[800],
-                            //fontWeight: FontWeight.bold,
                           ),
                         ),
                         Row(
@@ -100,7 +107,6 @@ class _UserCardState extends State<UserCard> {
                             Text(
                               'Kelurahan ${widget.user.kelurahan}',
                               style: TextStyle(
-                                //fontWeight: FontWeight.bold,
                                 fontSize: 14,
                                 color: Colors.grey[800],
                               ),
@@ -190,7 +196,9 @@ class _UserCardState extends State<UserCard> {
           children: [
             ElevatedButton.icon(
               onPressed: () {
-                // Aksi untuk mengedit data
+                if (widget.onEdit != null) {
+                  widget.onEdit!(widget.user);
+                }
               },
               icon: const Icon(Icons.edit, size: 16),
               label: const Text('Edit', style: TextStyle(fontSize: 12)),
@@ -204,32 +212,22 @@ class _UserCardState extends State<UserCard> {
                 minimumSize: Size.zero,
               ),
             ),
-
             const SizedBox(width: 8),
-            ElevatedButton.icon(
+            TextButton.icon(
+              icon: const Icon(Icons.lock_reset),
+              label: const Text('Reset Password'),
               onPressed: () {
-                // Aksi untuk mereset password
+                if (widget.onResetPassword != null) {
+                  widget.onResetPassword!(widget.user);
+                }
               },
-              icon: const Icon(Icons.lock_reset, size: 16),
-              label: const Text(
-                'Reset Password',
-                style: TextStyle(fontSize: 12),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                minimumSize: Size.zero,
-              ),
             ),
-
             const SizedBox(width: 8),
             ElevatedButton.icon(
               onPressed: () {
-                // Aksi untuk menghapus data
+                if (widget.onDelete != null) {
+                  widget.onDelete!(widget.user);
+                }
               },
               icon: const Icon(Icons.delete, size: 16),
               label: const Text('Delete', style: TextStyle(fontSize: 12)),
