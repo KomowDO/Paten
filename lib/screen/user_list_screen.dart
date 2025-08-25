@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:paten/models/user.dart';
 import 'package:paten/screen/add_user_screen.dart';
-import 'package:paten/screen/edit_user_screen.dart'; // Import EditUserScreen
+import 'package:paten/screen/edit_user_screen.dart';
 import 'package:paten/widgets/user_card.dart';
 import 'package:paten/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,6 +29,7 @@ class _UserListScreenState extends State<UserListScreen> {
   int _currentPage = 1;
   final int _pageSize = 10;
   List<User> _currentUsers = [];
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
@@ -46,7 +47,7 @@ class _UserListScreenState extends State<UserListScreen> {
 
   void _fetchUsers() {
     setState(() {
-      _usersFuture = ApiService().getUsers(
+      _usersFuture = _apiService.getUsers(
         page: _currentPage,
         limit: _pageSize,
         kode_unor_pegawai: _kodeUnorPegawai,
@@ -56,13 +57,6 @@ class _UserListScreenState extends State<UserListScreen> {
         filter_no_rt: _rtController.text,
         keyword: _keywordController.text,
       );
-      _usersFuture.then((users) {
-        if (mounted) {
-          setState(() {
-            _currentUsers = users;
-          });
-        }
-      });
     });
   }
 
@@ -80,29 +74,34 @@ class _UserListScreenState extends State<UserListScreen> {
     _fetchUsers();
   }
 
+  Future<void> _onAddUser() async {
+    final bool? shouldRefresh = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AddUserScreen()),
+    );
+    if (shouldRefresh == true) {
+      _fetchUsers();
+    }
+  }
+
   Future<void> _onEditUser(User user) async {
-    // Navigasi ke EditUserScreen dan tunggu hasilnya
     final bool? shouldRefresh = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => EditUserScreen(user: user)),
     );
-
-    // Jika EditUserScreen mengembalikan `true`, refresh daftar pengguna
     if (shouldRefresh == true) {
       _fetchUsers();
     }
   }
 
   Future<void> _onResetPassword(User user) async {
-    const jwtToken = ApiService.jwtToken;
-
     final bool? shouldReset = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Reset Password'),
           content: Text(
-            'Apakah Anda yakin ingin mereset password untuk ${user.nama}?',
+            'Apakah Anda yakin ingin mereset password untuk ${user.nama ?? 'pengguna ini'}?',
           ),
           actions: <Widget>[
             TextButton(
@@ -123,7 +122,10 @@ class _UserListScreenState extends State<UserListScreen> {
     );
 
     if (shouldReset == true) {
-      final result = await ApiService().resetPassword(jwtToken, user.nik);
+      final result = await _apiService.resetPassword(
+        ApiService.jwtToken,
+        user.nik ?? '',
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -144,7 +146,7 @@ class _UserListScreenState extends State<UserListScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Hapus Pengguna'),
         content: Text(
-          'Apakah Anda yakin ingin menghapus pengguna ${user.nama}?',
+          'Apakah Anda yakin ingin menghapus pengguna ${user.nama ?? 'ini'}?',
         ),
         actions: [
           TextButton(
@@ -160,9 +162,10 @@ class _UserListScreenState extends State<UserListScreen> {
     );
 
     if (isConfirmed == true) {
-      const jwtToken = ApiService.jwtToken;
-
-      final result = await ApiService().deleteUser(jwtToken, user.nik);
+      final result = await _apiService.deleteUser(
+        ApiService.jwtToken,
+        user.nik ?? '',
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -195,17 +198,7 @@ class _UserListScreenState extends State<UserListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Daftar Pengguna RT/RW'),
-        actions: [
-          IconButton(icon: const Icon(Icons.search), onPressed: _fetchUsers),
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () {
-              setState(() {
-                _isFilterVisible = !_isFilterVisible;
-              });
-            },
-          ),
-        ],
+        centerTitle: true,
       ),
       body: Column(
         children: [
@@ -216,16 +209,7 @@ class _UserListScreenState extends State<UserListScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AddUserScreen(),
-                      ),
-                    ).then((value) {
-                      _fetchUsers();
-                    });
-                  },
+                  onPressed: _onAddUser,
                   icon: const Icon(Icons.add),
                   label: const Text('Tambah Data'),
                 ),
@@ -266,8 +250,7 @@ class _UserListScreenState extends State<UserListScreen> {
                           itemBuilder: (context, index) {
                             return UserCard(
                               user: users[index],
-                              onEdit:
-                                  _onEditUser, // Meneruskan callback untuk navigasi
+                              onEdit: _onEditUser,
                               onResetPassword: _onResetPassword,
                               onDelete: _onDeleteUser,
                             );

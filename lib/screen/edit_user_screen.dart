@@ -29,43 +29,171 @@ class _EditUserScreenState extends State<EditUserScreen> {
   DateTime? _jabatanAkhirDate;
   String? _selectedJabatan;
   List<String> _jabatanOptions = [];
+  Map<String, int> _jabatanIdMap = {};
+
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _apiService.addInterceptors();
-    _apiService.removeBearerToken();
+    _loadUserData();
+    _fetchJabatanOptions();
+  }
 
+  void _loadUserData() {
     final user = widget.user;
 
-    _nikController.text = user.nik;
-    _namaController.text = user.nama;
-    _alamatController.text = user.alamat;
-    _teleponController.text = user.no_wa;
-    _wilayahRtController.text = user.rt.toString();
-    _wilayahRwController.text = user.rw.toString();
-    _jabatanMulaiController.text = user.jabatanMulai;
-    _jabatanAkhirController.text = user.jabatanAkhir;
+    _nikController.text = user.nik ?? '';
+    _namaController.text = user.nama ?? '';
+    _alamatController.text = user.alamat ?? '';
+    _teleponController.text = user.no_wa ?? '';
+    _wilayahRtController.text = user.rt?.toString() ?? '';
+    _wilayahRwController.text = user.rw?.toString() ?? '';
+
+    _jabatanMulaiController.text = _formatDateForDisplay(user.jabatan_mulai);
+    _jabatanAkhirController.text = _formatDateForDisplay(user.jabatan_akhir);
+
     _selectedJabatan = user.jabatan;
 
     try {
-      _jabatanMulaiDate = DateFormat('dd/MM/yyyy').parse(user.jabatanMulai);
+      if (user.jabatan_mulai != null && user.jabatan_mulai != '0000-00-00') {
+        _jabatanMulaiDate = DateFormat('dd/MM/yyyy').parse(user.jabatan_mulai!);
+      }
     } catch (_) {}
     try {
-      _jabatanAkhirDate = DateFormat('dd/MM/yyyy').parse(user.jabatanAkhir);
+      if (user.jabatan_akhir != null && user.jabatan_akhir != '0000-00-00') {
+        _jabatanAkhirDate = DateFormat('dd/MM/yyyy').parse(user.jabatan_akhir!);
+      }
     } catch (_) {}
+  }
 
-    _fetchJabatanOptions();
+  String _formatDateForDisplay(String? dateString) {
+    if (dateString == null ||
+        dateString.isEmpty ||
+        dateString == '0000-00-00') {
+      return '';
+    }
+    try {
+      final dateTime = DateFormat('dd/MM/yyyy').parse(dateString);
+      return DateFormat('dd/MM/yyyy', 'id').format(dateTime);
+    } catch (e) {
+      return dateString ?? '';
+    }
   }
 
   Future<void> _fetchJabatanOptions() async {
     try {
-      final jabatanList = await _apiService.fetchJabatanOptions();
+      final fetchedJabatanData = await _apiService.fetchJabatanData();
+      final List<String> options = fetchedJabatanData
+          .map((item) => item['nama'].toString())
+          .toList();
+      final Map<String, int> idMap = Map.fromIterable(
+        fetchedJabatanData,
+        key: (item) => item['nama'].toString(),
+        value: (item) => (item['id_jabatan'] as int?) ?? 0,
+      );
+
       setState(() {
-        _jabatanOptions = jabatanList;
+        _jabatanOptions = options;
+        _jabatanIdMap = idMap;
       });
     } catch (e) {
       print("Error fetching jabatan: $e");
+    }
+  }
+
+  int? _getJabatanId(String? jabatanName) {
+    if (jabatanName == null) return null;
+    return _jabatanIdMap[jabatanName];
+  }
+
+  Future<void> _selectDate(
+    BuildContext context,
+    TextEditingController controller,
+    bool isStartDate,
+  ) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime(2101),
+    );
+    if (picked != null) {
+      setState(() {
+        if (isStartDate) {
+          _jabatanMulaiDate = picked;
+        } else {
+          _jabatanAkhirDate = picked;
+        }
+        controller.text = DateFormat('dd/MM/yyyy', 'id').format(picked);
+      });
+    }
+  }
+
+  String _formatDateForApi(DateTime? date) {
+    if (date == null) return '';
+    return DateFormat('dd/MM/yyyy').format(date);
+  }
+
+  void _simpanData() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
+
+      try {
+        final idJabatan = _getJabatanId(_selectedJabatan);
+        if (idJabatan == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Jabatan belum dipilih.')),
+          );
+          return;
+        }
+
+        final tglMulai = _formatDateForApi(_jabatanMulaiDate);
+        final tglSelesai = _formatDateForApi(_jabatanAkhirDate);
+
+        final result = await _apiService.updateUserRtRw(
+          nik: _nikController.text,
+          nama: _namaController.text,
+          alamat: _alamatController.text,
+          telepon: _teleponController.text,
+          idJabatan: idJabatan,
+          wilayahRt: int.tryParse(_wilayahRtController.text) ?? 0,
+          wilayahRw: int.tryParse(_wilayahRwController.text) ?? 0,
+          tglMulai: tglMulai,
+          tglSelesai: tglSelesai,
+          idPegawaiSession: 40797,
+          kodeUnorSession: '07.13.09',
+          kodeUnorPegawaiSession: '07.13.09.03',
+        );
+
+        final bool status = result['status'] == true;
+
+        if (status) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message']!),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.of(context).pop(true);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message']!),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Terjadi kesalahan: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } finally {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -85,7 +213,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
-      isDense: true, // membuat field lebih ramping
+      isDense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
     );
@@ -94,7 +222,10 @@ class _EditUserScreenState extends State<EditUserScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit Pengguna')),
+      appBar: AppBar(
+        title: const Text('Edit Pengguna RT/RW'),
+        centerTitle: true,
+      ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Form(
@@ -104,67 +235,93 @@ class _EditUserScreenState extends State<EditUserScreen> {
               TextFormField(
                 controller: _nikController,
                 decoration: _inputDecoration('NIK'),
+                readOnly: true,
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _namaController,
                 decoration: _inputDecoration('Nama'),
+                validator: (value) =>
+                    value!.isEmpty ? 'Nama tidak boleh kosong' : null,
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _alamatController,
                 decoration: _inputDecoration('Alamat'),
+                validator: (value) =>
+                    value!.isEmpty ? 'Alamat tidak boleh kosong' : null,
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _teleponController,
                 decoration: _inputDecoration('No. WA'),
+                validator: (value) =>
+                    value!.isEmpty ? 'Nomor WA tidak boleh kosong' : null,
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _wilayahRtController,
                 decoration: _inputDecoration('RT'),
                 keyboardType: TextInputType.number,
+                validator: (value) =>
+                    value!.isEmpty ? 'RT tidak boleh kosong' : null,
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _wilayahRwController,
                 decoration: _inputDecoration('RW'),
                 keyboardType: TextInputType.number,
+                validator: (value) =>
+                    value!.isEmpty ? 'RW tidak boleh kosong' : null,
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 value: _selectedJabatan,
-                isDense: true,
                 decoration: _inputDecoration('Jabatan'),
                 items: _jabatanOptions.map((jabatan) {
                   return DropdownMenuItem(value: jabatan, child: Text(jabatan));
                 }).toList(),
                 onChanged: (value) => setState(() => _selectedJabatan = value),
+                validator: (value) =>
+                    value == null ? 'Jabatan tidak boleh kosong' : null,
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _jabatanMulaiController,
                 decoration: _inputDecoration('Jabatan Mulai (dd/MM/yyyy)'),
+                readOnly: true,
+                onTap: () =>
+                    _selectDate(context, _jabatanMulaiController, true),
+                validator: (value) =>
+                    value!.isEmpty ? 'Tanggal mulai tidak boleh kosong' : null,
               ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _jabatanAkhirController,
                 decoration: _inputDecoration('Jabatan Akhir (dd/MM/yyyy)'),
+                readOnly: true,
+                onTap: () =>
+                    _selectDate(context, _jabatanAkhirController, false),
+                validator: (value) =>
+                    value!.isEmpty ? 'Tanggal akhir tidak boleh kosong' : null,
               ),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      print("Data disimpan");
-                    }
-                  },
+                  onPressed: _isLoading ? null : _simpanData,
                   style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF03038E),
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
-                  child: const Text('Simpan', style: TextStyle(fontSize: 14)),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(color: Colors.white),
+                        )
+                      : const Text('Simpan', style: TextStyle(fontSize: 14)),
                 ),
               ),
             ],

@@ -19,34 +19,37 @@ class ApiService {
       'https://script.google.com/macros/s/AKfycbxcQi5y7UiatE61MQgFl9TGA7Bli_u303NjpSvxbz7d-zKNPQb7AXiWCMT9dXpm6CTu/exec';
 
   final String _addUserRtRwApiUrl =
-      'https://script.google.com/macros/s/AKfycbwnsOdEtOUrqfwJQMO5RvbggJqjEndsonBo3hHTBEnFJp74jwHkZIFuIy1hCZ9ab9h2/exec';
+      'https://script.google.com/macros/s/AKfycbw8xP86JFS8DFuaE502MDhqN5wKB95TyCPzlDCk6DjGVKEagRC7VZpjQRzZXgYnc-qT/exec';
 
   static const String jwtToken =
-      // 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1NTA1NDI5NH0.2RTZ3pLPEDox8ti1MlcA2chwdlm3XC4dKbvh-F1xZu4';
-      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1NTg0Nzc4NX0.1-IPCPSr3-REOS4Hgabc5Q8VlIRjXB7eWqAr7P7QIf8';
+      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1NjEwNDk1NX0.KwyYfsafP93eOxhggm4D5Z4zHyf504L0xi8m37V3n6U';
 
   ApiService() : _dio = Dio(), _publicDio = Dio() {
-    _addInterceptorsInternal(_dio);
-    _addInterceptorsInternal(_publicDio);
+    _addAuthenticatedInterceptors(_dio);
+    _addPublicInterceptors(_publicDio);
   }
 
-  void addInterceptors() {
-    // Interceptor sudah ditambahkan di constructor, jadi metode ini tidak perlu dipanggil manual.
-  }
+  void addInterceptors() {}
 
-  void _addInterceptorsInternal(Dio dio) {
+  void _addAuthenticatedInterceptors(Dio dio) {
     dio.interceptors.add(
       LogInterceptor(
         requestBody: true,
         responseBody: true,
         logPrint: (obj) {
-          print('DIO LOG: $obj');
+          print('DIO AUTH LOG: $obj');
         },
       ),
     );
 
     dio.interceptors.add(
       InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.headers['Authorization'] == null) {
+            options.headers['Authorization'] = 'Bearer $jwtToken';
+          }
+          return handler.next(options);
+        },
         onResponse: (response, handler) {
           if (response.redirects.isNotEmpty) {
             print('--- DIO REDIRECT CHAIN DETECTED ---');
@@ -71,14 +74,29 @@ class ApiService {
     );
   }
 
+  void _addPublicInterceptors(Dio dio) {
+    dio.interceptors.add(
+      LogInterceptor(
+        requestBody: true,
+        responseBody: true,
+        logPrint: (obj) {
+          print('DIO PUBLIC LOG: $obj');
+        },
+      ),
+    );
+  }
+
   void removeBearerToken() {
     _dio.options.headers.remove('Authorization');
-    print(_dio.options.headers);
+    print('Token bearer telah dilepas.');
   }
 
   Future<List<Map<String, dynamic>>> fetchJabatanData() async {
     try {
-      final response = await _publicDio.get(_jabatanApiUrl);
+      final response = await _publicDio.get(
+        _jabatanApiUrl,
+        queryParameters: {'lib': 'M_AeKjZaFOlawafwJcLPaaIaJ-zFb6PIO'},
+      );
 
       if (response.statusCode == 200 && response.data != null) {
         final Map<String, dynamic> jsonResponse = response.data;
@@ -89,7 +107,7 @@ class ApiService {
                 item.containsKey('id_jabatan_rt_rw') &&
                 item.containsKey('nama_jabatan')) {
               return {
-                'id_jabatan': item['id_jabatan_rt_rw'] as int,
+                'id_jabatan': (item['id_jabatan_rt_rw'] as int?) ?? 0,
                 'nama': item['nama_jabatan'].toString(),
               };
             }
@@ -114,7 +132,10 @@ class ApiService {
 
   Future<List<String>> fetchJabatanOptions() async {
     try {
-      final response = await _publicDio.get(_jabatanApiUrl);
+      final response = await _publicDio.get(
+        _jabatanApiUrl,
+        queryParameters: {'lib': 'M_AeKjZaFOlawafwJcLPaaIaJ-zFb6PIO'},
+      );
       if (response.statusCode == 200 && response.data != null) {
         final Map<String, dynamic> jsonResponse = response.data;
         if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
@@ -165,9 +186,6 @@ class ApiService {
       }
       if (filter_no_rw != null && filter_no_rw.isNotEmpty) {
         queryParameters['filter_no_rw'] = filter_no_rw;
-      }
-      if (filter_no_rt != null && filter_no_rt.isNotEmpty) {
-        queryParameters['filter_no_rt'] = filter_no_rt;
       }
       if (keyword != null && keyword.isNotEmpty) {
         queryParameters['keyword'] = keyword;
@@ -432,7 +450,7 @@ class ApiService {
         'nik': nik,
         'nama': nama,
         'alamat': alamat,
-        'telepon': telepon,
+        'no_telp': telepon,
         'id_jabatan': idJabatan.toString(),
         'wilayah_rt': wilayahRt.toString(),
         'wilayah_rw': wilayahRw.toString(),
@@ -472,6 +490,79 @@ class ApiService {
       }
     } on DioException catch (e) {
       String message = 'Gagal menambahkan user: ${e.message}';
+      if (e.response != null && e.response!.data != null) {
+        message = e.response!.data['message'] ?? message;
+      }
+      return {'success': false, 'message': message};
+    } catch (e) {
+      return {'success': false, 'message': 'An unexpected error occurred: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> updateUserRtRw({
+    required String nik,
+    required String nama,
+    required String alamat,
+    required String telepon,
+    required int idJabatan,
+    required int wilayahRt,
+    required int wilayahRw,
+    required String tglMulai,
+    required String tglSelesai,
+    required int idPegawaiSession,
+    required String kodeUnorSession,
+    required String kodeUnorPegawaiSession,
+  }) async {
+    try {
+      final Map<String, dynamic> queryParams = {
+        'endpoint': 'update_user_rt_rw',
+        'jwt_token': jwtToken,
+        'nik': nik,
+        'nama': nama,
+        'alamat': alamat,
+        'no_telp': telepon,
+        'id_jabatan': idJabatan.toString(),
+        'wilayah_rt': wilayahRt.toString(),
+        'wilayah_rw': wilayahRw.toString(),
+        'tgl_mulai': tglMulai,
+        'tgl_selesai': tglSelesai,
+        'id_pegawai_session': idPegawaiSession.toString(),
+        'kode_unor_session': kodeUnorSession,
+        'kode_unor_pegawai_session': kodeUnorPegawaiSession,
+      };
+
+      final response = await _dio
+          .get(
+            _addUserRtRwApiUrl,
+            queryParameters: queryParams,
+            options: Options(
+              headers: {'Content-Type': 'application/json'},
+              validateStatus: (status) => true,
+            ),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is Map<String, dynamic> && data['status'] == true) {
+          return {
+            'success': true,
+            'message': data['message'] ?? 'Data berhasil diperbarui',
+          };
+        } else {
+          return {
+            'success': false,
+            'message': data['message'] ?? 'Gagal memperbarui data',
+          };
+        }
+      } else {
+        return {
+          'success': false,
+          'message': 'Gagal memperbarui data. Status: ${response.statusCode}',
+        };
+      }
+    } on DioException catch (e) {
+      String message = 'Gagal memperbarui data: ${e.message}';
       if (e.response != null && e.response!.data != null) {
         message = e.response!.data['message'] ?? message;
       }

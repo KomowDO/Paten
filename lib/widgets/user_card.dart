@@ -1,6 +1,7 @@
 // File: lib/widgets/user_card.dart
 import 'package:flutter/material.dart';
 import 'package:paten/models/user.dart';
+import 'package:intl/intl.dart';
 
 class UserCard extends StatefulWidget {
   final User user;
@@ -37,6 +38,26 @@ class _UserCardState extends State<UserCard> {
     // TODO: Tambahkan logika untuk memanggil API update status di sini
   }
 
+  String _formatDateForDisplay(String? dateString) {
+    if (dateString == null ||
+        dateString.isEmpty ||
+        dateString == '0000-00-00') {
+      return '-';
+    }
+    try {
+      final dateTime = DateFormat('yyyy-MM-dd').parse(dateString);
+      return DateFormat('dd/MM/yyyy', 'id').format(dateTime);
+    } catch (e) {
+      try {
+        final dateTime = DateFormat('dd/MM/yyyy').parse(dateString);
+        return DateFormat('dd/MM/yyyy', 'id').format(dateTime);
+      } catch (e) {
+        print('Gagal memparsing tanggal: $dateString, Error: $e');
+        return dateString;
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -61,7 +82,7 @@ class _UserCardState extends State<UserCard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          widget.user.nama,
+                          widget.user.nama ?? '-',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -70,7 +91,7 @@ class _UserCardState extends State<UserCard> {
                         Row(
                           children: [
                             Text(
-                              widget.user.jabatan,
+                              widget.user.nama_jabatan ?? '-',
                               style: TextStyle(
                                 color: Colors.grey[800],
                                 fontSize: 14,
@@ -78,7 +99,7 @@ class _UserCardState extends State<UserCard> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '${widget.user.rt}',
+                              'RT ${widget.user.rt ?? '-'}',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey[800],
@@ -86,7 +107,7 @@ class _UserCardState extends State<UserCard> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '/ RW ${widget.user.rw}',
+                              '/ RW ${widget.user.rw ?? '-'}',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey[800],
@@ -96,7 +117,7 @@ class _UserCardState extends State<UserCard> {
                         ),
                         const SizedBox(height: 1),
                         Text(
-                          'Kecamatan ${widget.user.kecamatan}',
+                          'Kecamatan ${widget.user.kecamatan ?? '-'}',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[800],
@@ -105,7 +126,7 @@ class _UserCardState extends State<UserCard> {
                         Row(
                           children: [
                             Text(
-                              'Kelurahan ${widget.user.kelurahan}',
+                              'Kelurahan ${widget.user.kelurahan ?? '-'}',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey[800],
@@ -181,15 +202,23 @@ class _UserCardState extends State<UserCard> {
     return Column(
       children: [
         const Divider(height: 6, thickness: 1),
-        _buildDataRow(context, 'NIK', widget.user.nik),
-        _buildDataRow(context, 'Alamat', widget.user.alamat),
-        _buildDataRow(context, 'Kecamatan', widget.user.kecamatan),
-        _buildDataRow(context, 'Kelurahan', widget.user.kelurahan),
-        _buildDataRow(context, 'RT', 'RT ${widget.user.rt}'),
-        _buildDataRow(context, 'RW', 'RW ${widget.user.rw}'),
-        _buildDataRow(context, 'No. WA', widget.user.no_wa),
-        _buildDataRow(context, 'Jabatan Mulai', widget.user.jabatanMulai),
-        _buildDataRow(context, 'Jabatan Akhir', widget.user.jabatanAkhir),
+        _buildDataRow(context, 'NIK', widget.user.nik ?? '-'),
+        _buildDataRow(context, 'Alamat', widget.user.alamat ?? '-'),
+        _buildDataRow(context, 'Kecamatan', widget.user.kecamatan ?? '-'),
+        _buildDataRow(context, 'Kelurahan', widget.user.kelurahan ?? '-'),
+        _buildDataRow(context, 'RT', 'RT ${widget.user.rt ?? '-'}'),
+        _buildDataRow(context, 'RW', 'RW ${widget.user.rw ?? '-'}'),
+        _buildDataRow(context, 'No. WA', widget.user.no_wa ?? '-'),
+        _buildDataRow(
+          context,
+          'Jabatan Mulai',
+          _formatDateForDisplay(widget.user.jabatan_mulai),
+        ),
+        _buildDataRow(
+          context,
+          'Jabatan Akhir',
+          _formatDateForDisplay(widget.user.jabatan_akhir),
+        ),
         const Divider(height: 6, thickness: 1),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,

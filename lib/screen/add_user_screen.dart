@@ -39,6 +39,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
   @override
   void initState() {
     super.initState();
+    _apiService.addInterceptors();
     _fetchJabatanOptions();
   }
 
@@ -61,6 +62,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
     });
 
     try {
+      _apiService.removeBearerToken();
       final fetchedJabatanData = await _apiService.fetchJabatanData();
       final List<String> options = fetchedJabatanData
           .map((item) => item['nama'].toString())
@@ -68,7 +70,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
       final Map<String, int> idMap = Map.fromIterable(
         fetchedJabatanData,
         key: (item) => item['nama'].toString(),
-        value: (item) => item['id_jabatan'] as int,
+        value: (item) => (item['id_jabatan'] as int?) ?? 0,
       );
 
       setState(() {
@@ -145,14 +147,14 @@ class _AddUserScreenState extends State<AddUserScreen> {
         } else {
           _jabatanAkhirDate = picked;
         }
-        controller.text = DateFormat('dd/MM/yyyy').format(picked);
+        controller.text = DateFormat('dd/MM/yyyy', 'id').format(picked);
       });
     }
   }
 
   String _formatDateForApi(DateTime? date) {
     if (date == null) return '';
-    return DateFormat('yyyy-MM-dd').format(date);
+    return DateFormat('dd/MM/yyyy').format(date);
   }
 
   void _simpanData() async {
@@ -192,7 +194,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
           wilayahRw: int.tryParse(_wilayahRwController.text) ?? 0,
           tglMulai: tglMulai,
           tglSelesai: tglSelesai,
-          idPegawaiSession: 40797, // <-- NILAI TELAH DIPERBARUI DI SINI
+          idPegawaiSession: 40797,
           kodeUnorSession: '07.13.09',
           kodeUnorPegawaiSession: '07.13.09.03',
         );

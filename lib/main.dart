@@ -24,7 +24,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF03038E),
+          backgroundColor: Color(0xFF062B96),
           foregroundColor: Colors.white,
         ),
         inputDecorationTheme: InputDecorationTheme(
