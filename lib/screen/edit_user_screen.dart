@@ -48,11 +48,9 @@ class _EditUserScreenState extends State<EditUserScreen> {
     _jabatanAkhirController.text = user.jabatanAkhir;
     _selectedJabatan = user.jabatan;
 
-    // Parse tanggal jika valid
     try {
       _jabatanMulaiDate = DateFormat('dd/MM/yyyy').parse(user.jabatanMulai);
     } catch (_) {}
-
     try {
       _jabatanAkhirDate = DateFormat('dd/MM/yyyy').parse(user.jabatanAkhir);
     } catch (_) {}
@@ -84,75 +82,90 @@ class _EditUserScreenState extends State<EditUserScreen> {
     super.dispose();
   }
 
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      isDense: true, // membuat field lebih ramping
+      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Edit Pengguna')),
+      appBar: AppBar(title: const Text('Edit Pengguna')),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Form(
           key: _formKey,
           child: ListView(
             children: [
               TextFormField(
                 controller: _nikController,
-                decoration: InputDecoration(labelText: 'NIK'),
+                decoration: _inputDecoration('NIK'),
               ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _namaController,
-                decoration: InputDecoration(labelText: 'Nama'),
+                decoration: _inputDecoration('Nama'),
               ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _alamatController,
-                decoration: InputDecoration(labelText: 'Alamat'),
+                decoration: _inputDecoration('Alamat'),
               ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _teleponController,
-                decoration: InputDecoration(labelText: 'No. WA'),
+                decoration: _inputDecoration('No. WA'),
               ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _wilayahRtController,
-                decoration: InputDecoration(labelText: 'RT'),
+                decoration: _inputDecoration('RT'),
                 keyboardType: TextInputType.number,
               ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _wilayahRwController,
-                decoration: InputDecoration(labelText: 'RW'),
+                decoration: _inputDecoration('RW'),
                 keyboardType: TextInputType.number,
               ),
+              const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 value: _selectedJabatan,
+                isDense: true,
+                decoration: _inputDecoration('Jabatan'),
                 items: _jabatanOptions.map((jabatan) {
                   return DropdownMenuItem(value: jabatan, child: Text(jabatan));
                 }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedJabatan = value;
-                  });
-                },
-                decoration: InputDecoration(labelText: 'Jabatan'),
+                onChanged: (value) => setState(() => _selectedJabatan = value),
               ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _jabatanMulaiController,
-                decoration: InputDecoration(
-                  labelText: 'Jabatan Mulai (dd/MM/yyyy)',
-                ),
+                decoration: _inputDecoration('Jabatan Mulai (dd/MM/yyyy)'),
               ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _jabatanAkhirController,
-                decoration: InputDecoration(
-                  labelText: 'Jabatan Akhir (dd/MM/yyyy)',
-                ),
+                decoration: _inputDecoration('Jabatan Akhir (dd/MM/yyyy)'),
               ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    // Simpan perubahan
-                    print("Data disimpan");
-                  }
-                },
-                child: Text('Simpan'),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      print("Data disimpan");
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                  child: const Text('Simpan', style: TextStyle(fontSize: 14)),
+                ),
               ),
             ],
           ),

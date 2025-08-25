@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:paten/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:convert';
 
 class AddUserScreen extends StatefulWidget {
   const AddUserScreen({super.key});
@@ -27,6 +28,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
   final TextEditingController _jabatanAkhirController = TextEditingController();
 
   List<String> _jabatanOptions = [];
+  Map<String, int> _jabatanIdMap = {};
   bool _isJabatanLoading = true;
 
   DateTime? _jabatanMulaiDate;
@@ -37,8 +39,6 @@ class _AddUserScreenState extends State<AddUserScreen> {
   @override
   void initState() {
     super.initState();
-    _apiService.addInterceptors();
-    print('[_AddUserScreenState] initState dipanggil.');
     _fetchJabatanOptions();
   }
 
@@ -56,40 +56,27 @@ class _AddUserScreenState extends State<AddUserScreen> {
   }
 
   Future<void> _fetchJabatanOptions() async {
-    print('[_AddUserScreenState] _fetchJabatanOptions dipanggil.');
     setState(() {
       _isJabatanLoading = true;
     });
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final cachedData = prefs.getStringList('jabatan_options');
+      final fetchedJabatanData = await _apiService.fetchJabatanData();
+      final List<String> options = fetchedJabatanData
+          .map((item) => item['nama'].toString())
+          .toList();
+      final Map<String, int> idMap = Map.fromIterable(
+        fetchedJabatanData,
+        key: (item) => item['nama'].toString(),
+        value: (item) => item['id_jabatan'] as int,
+      );
 
-      if (cachedData != null && cachedData.isNotEmpty) {
-        setState(() {
-          _jabatanOptions = cachedData;
-        });
-        print('[_AddUserScreenState] Menggunakan data jabatan dari cache.');
-      }
-
-      // Selalu coba panggil API untuk memastikan data terbaru
-      _apiService.removeBearerToken();
-      print('Token bearer telah dilepas sebelum memuat opsi jabatan.');
-      final fetchedOptions = await _apiService.fetchJabatanOptions();
-
-      // Jika data dari API berbeda dengan cache, perbarui
-      if (!listEquals(fetchedOptions, _jabatanOptions)) {
-        setState(() {
-          _jabatanOptions = fetchedOptions;
-        });
-        await prefs.setStringList('jabatan_options', fetchedOptions);
-        print(
-          '[_AddUserScreenState] Data jabatan diperbarui dari API dan disimpan ke cache.',
-        );
-      }
+      setState(() {
+        _jabatanOptions = options;
+        _jabatanIdMap = idMap;
+      });
     } catch (e) {
-      print('[_AddUserScreenState] Error saat memuat jabatan: $e');
-      // Jika ada error dan tidak ada data di cache, tampilkan pesan
+      print('Error saat memuat jabatan: $e');
       if (_jabatanOptions.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -100,9 +87,44 @@ class _AddUserScreenState extends State<AddUserScreen> {
     } finally {
       setState(() {
         _isJabatanLoading = false;
-        print('[_AddUserScreenState] _isJabatanLoading diatur ke false.');
       });
     }
+  }
+
+  int? _getJabatanId(String? jabatanName) {
+    if (jabatanName == null) return null;
+    return _jabatanIdMap[jabatanName];
+  }
+
+  Future<Map<String, dynamic>> _addUserRtRw({
+    required String jwtToken,
+    required String nik,
+    required String nama,
+    required String alamat,
+    required String telepon,
+    required int idJabatan,
+    required int wilayahRt,
+    required int wilayahRw,
+    required String tglMulai,
+    required String tglSelesai,
+    required int idPegawaiSession,
+    required String kodeUnorSession,
+    required String kodeUnorPegawaiSession,
+  }) async {
+    return _apiService.addUserRtRw(
+      nik: nik,
+      nama: nama,
+      alamat: alamat,
+      telepon: telepon,
+      idJabatan: idJabatan,
+      wilayahRt: wilayahRt,
+      wilayahRw: wilayahRw,
+      tglMulai: tglMulai,
+      tglSelesai: tglSelesai,
+      idPegawaiSession: idPegawaiSession,
+      kodeUnorSession: kodeUnorSession,
+      kodeUnorPegawaiSession: kodeUnorPegawaiSession,
+    );
   }
 
   Future<void> _selectDate(
@@ -120,13 +142,17 @@ class _AddUserScreenState extends State<AddUserScreen> {
       setState(() {
         if (isStartDate) {
           _jabatanMulaiDate = picked;
-          controller.text = DateFormat('dd/MM/yyyy').format(picked);
         } else {
           _jabatanAkhirDate = picked;
-          controller.text = DateFormat('dd/MM/yyyy').format(picked);
         }
+        controller.text = DateFormat('dd/MM/yyyy').format(picked);
       });
     }
+  }
+
+  String _formatDateForApi(DateTime? date) {
+    if (date == null) return '';
+    return DateFormat('yyyy-MM-dd').format(date);
   }
 
   void _simpanData() async {
@@ -135,35 +161,65 @@ class _AddUserScreenState extends State<AddUserScreen> {
         _isLoading = true;
       });
 
-      final Map<String, dynamic> newData = {
-        'nik': _nikController.text,
-        'nama': _namaController.text,
-        'alamat': _alamatController.text,
-        'telepon': _teleponController.text,
-        'jabatan': _selectedJabatan,
-        'wilayah_rt': int.tryParse(_wilayahRtController.text) ?? 0,
-        'wilayah_rw': int.tryParse(_wilayahRwController.text) ?? 0,
-        'jabatan_mulai': _jabatanMulaiController.text,
-        'jabatan_akhir': _jabatanAkhirController.text,
-      };
-
       try {
-        print('Simulasi: Menambah data ke API: $newData');
-        await Future.delayed(const Duration(seconds: 2));
+        final idJabatan = _getJabatanId(_selectedJabatan);
+        if (idJabatan == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'ID Jabatan tidak ditemukan. Silakan pilih jabatan yang valid.',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+          setState(() {
+            _isLoading = false;
+          });
+          return;
+        }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Pengguna baru berhasil "ditambahkan" secara lokal!'),
-          ),
+        final tglMulai = _formatDateForApi(_jabatanMulaiDate);
+        final tglSelesai = _formatDateForApi(_jabatanAkhirDate);
+
+        final result = await _addUserRtRw(
+          jwtToken: ApiService.jwtToken,
+          nik: _nikController.text,
+          nama: _namaController.text,
+          alamat: _alamatController.text,
+          telepon: _teleponController.text,
+          idJabatan: idJabatan,
+          wilayahRt: int.tryParse(_wilayahRtController.text) ?? 0,
+          wilayahRw: int.tryParse(_wilayahRwController.text) ?? 0,
+          tglMulai: tglMulai,
+          tglSelesai: tglSelesai,
+          idPegawaiSession: 40797, // <-- NILAI TELAH DIPERBARUI DI SINI
+          kodeUnorSession: '07.13.09',
+          kodeUnorPegawaiSession: '07.13.09.03',
         );
-        Navigator.of(context).pop();
+
+        final bool status = result['status'] == true;
+
+        if (status) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message']),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.of(context).pop(true);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message']),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       } catch (e) {
-        print('Error saat "menambahkan" pengguna: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Terjadi kesalahan saat "menambahkan" pengguna: ${e.toString()}',
-            ),
+            content: Text('Terjadi kesalahan: ${e.toString()}'),
+            backgroundColor: Colors.red,
           ),
         );
       } finally {

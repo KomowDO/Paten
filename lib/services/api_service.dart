@@ -1,13 +1,13 @@
-// File: lib/services/api_service.dart
 import 'package:dio/dio.dart';
 import 'dart:convert';
 import 'package:paten/models/user.dart';
 
 class ApiService {
   final Dio _dio;
+  final Dio _publicDio;
 
   final String _jabatanApiUrl =
-      'https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLiSt4bPhW8QIfEakvSkorTbO5FA3X7ZYneP2cHiuiTi5F2y7Mf3DxwazdIGK4PyfCF05E1Mc4CvvgHAM4N5SyjXOAfCdzhRn_Jy7npxsYFz41sMlC5u6raDOFdARDfRr2OkBKJLO3X7iKCMEApT6RAXZ8f0nnSm2TjqKwnXC7ULvW6UpSC6fXXdgBZZRU9PlAz69IDx5VIhBiFwWLoljY6iQ6hPNk8ZSVg1g3m90IA0IWZrzInEwnff0MdJo52tv9y3W6BgFubAE1cNjv1bACokJ2VKw&lib=M_AeKjZaFOlawafwJcLPaaIaJ-zFb6PIO';
+      'https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLiSt4bPhW8QIfEakvSkorTbO5FA3X7ZYneP2cHiuiTi5F2y7Mf3DxwazdIGK4PyfCF05E1Mc4CvvgHAM4N5SyjXOAfCdzhRn_Jy7npxsYFz41sMlC5u6raDOFdARDfRr2OkBKlJLO3X7iKCMEApT6RAXZ8f0nnSm2TjqKwnXC7ULvW6UpSC6fXXdgBZZRU9PlAz69IDx5VIhBiFwWLoljY6iQ6hPNk8ZSVg1g3m90IA0IWZrzInEwnff0MdJo52tv9y3W6BgFubAE1cNjv1bACokJ2VKw&lib=M_AeKjZaFOlawafwJcLPaaIaJ-zFb6PIO';
 
   final String _userListApiUrl =
       'https://script.google.com/macros/s/AKfycbz6i1pWIsHXwjbJVGrD3WFN8iNmFvEe23yZD0brdHCC-7zewdFHrIZ_r5QGORCtIAc00w/exec';
@@ -18,17 +18,24 @@ class ApiService {
   final String _mainApiUrl =
       'https://script.google.com/macros/s/AKfycbxcQi5y7UiatE61MQgFl9TGA7Bli_u303NjpSvxbz7d-zKNPQb7AXiWCMT9dXpm6CTu/exec';
 
-  // Variabel ini diubah dari privat (_jwtToken) menjadi publik (jwtToken)
-  // agar bisa diakses dari file lain.
-  static const String jwtToken =
-      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1NTE1MTA4MX0.zlnuxREIkSZMaBHRPlX83y7QOzjBAR8XwpTY07VilVg';
+  final String _addUserRtRwApiUrl =
+      'https://script.google.com/macros/s/AKfycbwnsOdEtOUrqfwJQMO5RvbggJqjEndsonBo3hHTBEnFJp74jwHkZIFuIy1hCZ9ab9h2/exec';
 
-  ApiService() : _dio = Dio() {
-    addInterceptors();
+  static const String jwtToken =
+      // 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1NTA1NDI5NH0.2RTZ3pLPEDox8ti1MlcA2chwdlm3XC4dKbvh-F1xZu4';
+      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1NTg0Nzc4NX0.1-IPCPSr3-REOS4Hgabc5Q8VlIRjXB7eWqAr7P7QIf8';
+
+  ApiService() : _dio = Dio(), _publicDio = Dio() {
+    _addInterceptorsInternal(_dio);
+    _addInterceptorsInternal(_publicDio);
   }
 
   void addInterceptors() {
-    _dio.interceptors.add(
+    // Interceptor sudah ditambahkan di constructor, jadi metode ini tidak perlu dipanggil manual.
+  }
+
+  void _addInterceptorsInternal(Dio dio) {
+    dio.interceptors.add(
       LogInterceptor(
         requestBody: true,
         responseBody: true,
@@ -38,7 +45,7 @@ class ApiService {
       ),
     );
 
-    _dio.interceptors.add(
+    dio.interceptors.add(
       InterceptorsWrapper(
         onResponse: (response, handler) {
           if (response.redirects.isNotEmpty) {
@@ -62,6 +69,74 @@ class ApiService {
         },
       ),
     );
+  }
+
+  void removeBearerToken() {
+    _dio.options.headers.remove('Authorization');
+    print(_dio.options.headers);
+  }
+
+  Future<List<Map<String, dynamic>>> fetchJabatanData() async {
+    try {
+      final response = await _publicDio.get(_jabatanApiUrl);
+
+      if (response.statusCode == 200 && response.data != null) {
+        final Map<String, dynamic> jsonResponse = response.data;
+        if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
+          final List<dynamic> dataList = jsonResponse['data'];
+          return dataList.map((item) {
+            if (item is Map &&
+                item.containsKey('id_jabatan_rt_rw') &&
+                item.containsKey('nama_jabatan')) {
+              return {
+                'id_jabatan': item['id_jabatan_rt_rw'] as int,
+                'nama': item['nama_jabatan'].toString(),
+              };
+            }
+            throw Exception('Format item data jabatan tidak valid.');
+          }).toList();
+        } else {
+          throw Exception(
+            'Respons API tidak mengandung kunci "data" yang valid.',
+          );
+        }
+      } else {
+        throw Exception(
+          'Gagal memuat daftar jabatan. Status Code: ${response.statusCode}',
+        );
+      }
+    } on DioException catch (e) {
+      throw Exception('Kesalahan jaringan saat memuat jabatan: ${e.message}');
+    } catch (e) {
+      throw Exception('Terjadi kesalahan tak terduga: $e');
+    }
+  }
+
+  Future<List<String>> fetchJabatanOptions() async {
+    try {
+      final response = await _publicDio.get(_jabatanApiUrl);
+      if (response.statusCode == 200 && response.data != null) {
+        final Map<String, dynamic> jsonResponse = response.data;
+        if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
+          final List<dynamic> dataList = jsonResponse['data'];
+          return dataList
+              .map((item) => item['nama_jabatan'].toString())
+              .toList();
+        } else {
+          throw Exception(
+            'Respons API tidak mengandung kunci "data" yang valid.',
+          );
+        }
+      } else {
+        throw Exception(
+          'Gagal memuat daftar jabatan. Status Code: ${response.statusCode}',
+        );
+      }
+    } on DioException catch (e) {
+      throw Exception('Kesalahan jaringan saat memuat jabatan: ${e.message}');
+    } catch (e) {
+      throw Exception('Terjadi kesalahan tak terduga: $e');
+    }
   }
 
   Future<List<User>> getUsers({
@@ -134,50 +209,12 @@ class ApiService {
 
   Future<Response> updateUserData(Map<String, dynamic> data) async {
     print("Simulasi: Mengirim data ke API update: $data");
-    await Future.delayed(Duration(seconds: 1));
+    await Future.delayed(const Duration(seconds: 1));
     return Response(
       requestOptions: RequestOptions(path: ''),
       statusCode: 200,
       data: {"message": "Simulasi update berhasil"},
     );
-  }
-
-  Future<List<String>> fetchJabatanOptions() async {
-    try {
-      print('Headers sebelum request: ${_dio.options.headers}');
-      final response = await _dio.get(_jabatanApiUrl);
-      if (response.statusCode == 200 && response.data != null) {
-        final Map<String, dynamic> jsonResponse = response.data;
-        if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
-          final List<dynamic> dataList = jsonResponse['data'];
-          return dataList
-              .map((item) => item['nama_jabatan'].toString())
-              .toList();
-        } else {
-          throw Exception(
-            'Respons API tidak mengandung kunci "data" yang valid.',
-          );
-        }
-      } else {
-        throw Exception(
-          'Gagal memuat daftar jabatan. Status Code: ${response.statusCode}',
-        );
-      }
-    } on DioException catch (e) {
-      print('Error Dio fetching jabatan: $e');
-      if (e.response != null) {
-        print('Error Response Data: ${e.response?.data}');
-      }
-      throw Exception('Kesalahan jaringan saat memuat jabatan: ${e.message}');
-    } catch (e) {
-      print('Error tak terduga fetching jabatan: $e');
-      throw Exception('Terjadi kesalahan tak terduga: $e');
-    }
-  }
-
-  void removeBearerToken() {
-    _dio.options.headers.remove('Authorization');
-    print(_dio.options.headers);
   }
 
   Future<String?> fetchBearerToken() async {
@@ -209,15 +246,8 @@ class ApiService {
         ),
       );
 
-      print('DIO LOG (Login Final Status): ${response.statusCode}');
-      print(
-        'DIO LOG (Login Final Data Raw Type): ${response.data.runtimeType}',
-      );
-      print('DIO LOG (Login Final Data Raw): ${response.data}');
-
       if (response.statusCode == 200 && response.data != null) {
         Map<String, dynamic> parsedResponse;
-
         if (response.data is String) {
           try {
             final decoded = json.decode(response.data);
@@ -226,24 +256,19 @@ class ApiService {
             } else {
               return {
                 'success': false,
-                'message':
-                    'Respon tidak valid dari server (bukan objek JSON akhir).',
+                'message': 'Respon tidak valid dari server.',
               };
             }
           } catch (e) {
             return {
               'success': false,
-              'message':
-                  'Respon tidak valid dari server (JSON parse error akhir).',
+              'message': 'Respon tidak valid dari server (JSON parse error).',
             };
           }
         } else if (response.data is Map<String, dynamic>) {
           parsedResponse = response.data;
         } else {
-          return {
-            'success': false,
-            'message': 'Format respons akhir tidak dikenal.',
-          };
+          return {'success': false, 'message': 'Format respons tidak dikenal.'};
         }
 
         if (parsedResponse.containsKey('success') &&
@@ -254,7 +279,6 @@ class ApiService {
             final Map<String, dynamic> data = parsedResponse['data'];
             accessToken = data['access_token']?.toString();
           }
-
           return {
             'success': true,
             'message': parsedResponse['message'] ?? 'Login berhasil!',
@@ -266,13 +290,12 @@ class ApiService {
             'success': false,
             'message':
                 parsedResponse['message'] ??
-                'Login gagal. Respon tidak lengkap dari server.',
+                'Login gagal. Respon tidak lengkap.',
           };
         }
       } else if (response.statusCode == 302 ||
           (response.data is String &&
-              response.data.toString().contains('<html') &&
-              response.data.toString().contains('</html>'))) {
+              response.data.toString().contains('<html'))) {
         return {
           'success': false,
           'message': 'API ini mengalihkan Anda ke halaman HTML.',
@@ -280,11 +303,10 @@ class ApiService {
       } else {
         return {
           'success': false,
-          'message': 'Login gagal. Status Code Akhir: ${response.statusCode}.',
+          'message': 'Login gagal. Status Code: ${response.statusCode}.',
         };
       }
     } on DioException catch (e) {
-      print('Error Dio login: $e');
       if (e.response != null) {
         if (e.response?.data is Map<String, dynamic>) {
           return {
@@ -324,7 +346,6 @@ class ApiService {
         };
       }
     } catch (e) {
-      print('Error tak terduga login: $e');
       return {'success': false, 'message': 'Terjadi kesalahan tak terduga: $e'};
     }
   }
@@ -381,6 +402,76 @@ class ApiService {
       }
     } on DioException catch (e) {
       String message = 'Failed to delete user: ${e.message}';
+      if (e.response != null && e.response!.data != null) {
+        message = e.response!.data['message'] ?? message;
+      }
+      return {'success': false, 'message': message};
+    } catch (e) {
+      return {'success': false, 'message': 'An unexpected error occurred: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> addUserRtRw({
+    required String nik,
+    required String nama,
+    required String alamat,
+    required String telepon,
+    required int idJabatan,
+    required int wilayahRt,
+    required int wilayahRw,
+    required String tglMulai,
+    required String tglSelesai,
+    required int idPegawaiSession,
+    required String kodeUnorSession,
+    required String kodeUnorPegawaiSession,
+  }) async {
+    try {
+      final Map<String, String> queryParams = {
+        'endpoint': 'add_user_rt_rw',
+        'jwt_token': jwtToken,
+        'nik': nik,
+        'nama': nama,
+        'alamat': alamat,
+        'telepon': telepon,
+        'id_jabatan': idJabatan.toString(),
+        'wilayah_rt': wilayahRt.toString(),
+        'wilayah_rw': wilayahRw.toString(),
+        'tgl_mulai': tglMulai,
+        'tgl_selesai': tglSelesai,
+        'id_pegawai_session': idPegawaiSession.toString(),
+        'kode_unor_session': kodeUnorSession,
+        'kode_unor_pegawai_session': kodeUnorPegawaiSession,
+      };
+
+      final response = await _dio
+          .get(
+            _addUserRtRwApiUrl,
+            queryParameters: queryParams,
+            options: Options(
+              headers: {'Content-Type': 'application/json'},
+              validateStatus: (status) => true,
+            ),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        if (response.data is Map<String, dynamic>) {
+          return response.data;
+        } else {
+          try {
+            return json.decode(response.data.toString());
+          } catch (e) {
+            return {'success': false, 'message': 'Invalid response format.'};
+          }
+        }
+      } else {
+        return {
+          'success': false,
+          'message': 'Gagal menambahkan user. Status: ${response.statusCode}',
+        };
+      }
+    } on DioException catch (e) {
+      String message = 'Gagal menambahkan user: ${e.message}';
       if (e.response != null && e.response!.data != null) {
         message = e.response!.data['message'] ?? message;
       }
