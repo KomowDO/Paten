@@ -39,7 +39,6 @@ class _AddUserScreenState extends State<AddUserScreen> {
   @override
   void initState() {
     super.initState();
-    _apiService.addInterceptors();
     _fetchJabatanOptions();
   }
 
@@ -62,7 +61,6 @@ class _AddUserScreenState extends State<AddUserScreen> {
     });
 
     try {
-      _apiService.removeBearerToken();
       final fetchedJabatanData = await _apiService.fetchJabatanData();
       final List<String> options = fetchedJabatanData
           .map((item) => item['nama'].toString())
@@ -98,37 +96,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
     return _jabatanIdMap[jabatanName];
   }
 
-  Future<Map<String, dynamic>> _addUserRtRw({
-    required String jwtToken,
-    required String nik,
-    required String nama,
-    required String alamat,
-    required String telepon,
-    required int idJabatan,
-    required int wilayahRt,
-    required int wilayahRw,
-    required String tglMulai,
-    required String tglSelesai,
-    required int idPegawaiSession,
-    required String kodeUnorSession,
-    required String kodeUnorPegawaiSession,
-  }) async {
-    return _apiService.addUserRtRw(
-      nik: nik,
-      nama: nama,
-      alamat: alamat,
-      telepon: telepon,
-      idJabatan: idJabatan,
-      wilayahRt: wilayahRt,
-      wilayahRw: wilayahRw,
-      tglMulai: tglMulai,
-      tglSelesai: tglSelesai,
-      idPegawaiSession: idPegawaiSession,
-      kodeUnorSession: kodeUnorSession,
-      kodeUnorPegawaiSession: kodeUnorPegawaiSession,
-    );
-  }
-
+  // PERBAIKAN: Method untuk select date dengan format yang konsisten
   Future<void> _selectDate(
     BuildContext context,
     TextEditingController controller,
@@ -147,18 +115,64 @@ class _AddUserScreenState extends State<AddUserScreen> {
         } else {
           _jabatanAkhirDate = picked;
         }
-        controller.text = DateFormat('dd/MM/yyyy', 'id').format(picked);
+        // Format untuk display di UI
+        controller.text = DateFormat('dd/MM/yyyy').format(picked);
       });
+
+      // Debug: pastikan tanggal tersimpan
+      if (kDebugMode) {
+        print(
+          'Selected ${isStartDate ? "Start" : "End"} Date: ${DateFormat('dd/MM/yyyy').format(picked)}',
+        );
+        print('DateTime object: $picked');
+      }
     }
   }
 
+  // PERBAIKAN: Format tanggal untuk API (sesuaikan dengan yang diharapkan server)
   String _formatDateForApi(DateTime? date) {
     if (date == null) return '';
-    return DateFormat('dd/MM/yyyy').format(date);
+    // Coba format yang berbeda jika DD/MM/YYYY tidak bekerja
+    // return DateFormat('yyyy-MM-dd').format(date); // Format ISO
+    return DateFormat('dd/MM/yyyy').format(date); // Format DD/MM/YYYY
   }
 
+  // PERBAIKAN: Method simpan data dengan validasi yang lebih baik
   void _simpanData() async {
     if (_formKey.currentState!.validate()) {
+      // Validasi tambahan untuk tanggal
+      if (_jabatanMulaiDate == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tanggal mulai jabatan harus dipilih'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      if (_jabatanAkhirDate == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tanggal akhir jabatan harus dipilih'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Validasi logis: tanggal akhir harus setelah tanggal mulai
+      if (_jabatanAkhirDate!.isBefore(_jabatanMulaiDate!) ||
+          _jabatanAkhirDate!.isAtSameMomentAs(_jabatanMulaiDate!)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tanggal akhir harus setelah tanggal mulai'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
       setState(() {
         _isLoading = true;
       });
@@ -183,8 +197,24 @@ class _AddUserScreenState extends State<AddUserScreen> {
         final tglMulai = _formatDateForApi(_jabatanMulaiDate);
         final tglSelesai = _formatDateForApi(_jabatanAkhirDate);
 
-        final result = await _addUserRtRw(
-          jwtToken: ApiService.jwtToken,
+        // Debug: print semua data yang akan dikirim
+        if (kDebugMode) {
+          print('=== DATA YANG AKAN DIKIRIM ===');
+          print('NIK: ${_nikController.text}');
+          print('Nama: ${_namaController.text}');
+          print('Alamat: ${_alamatController.text}');
+          print('Telepon: ${_teleponController.text}');
+          print('ID Jabatan: $idJabatan');
+          print('Wilayah RT: ${_wilayahRtController.text}');
+          print('Wilayah RW: ${_wilayahRwController.text}');
+          print('Tanggal Mulai: $tglMulai (dari DateTime: $_jabatanMulaiDate)');
+          print(
+            'Tanggal Selesai: $tglSelesai (dari DateTime: $_jabatanAkhirDate)',
+          );
+          print('===============================');
+        }
+
+        final result = await _apiService.addUserRtRw(
           nik: _nikController.text,
           nama: _namaController.text,
           alamat: _alamatController.text,
@@ -199,25 +229,33 @@ class _AddUserScreenState extends State<AddUserScreen> {
           kodeUnorPegawaiSession: '07.13.09.03',
         );
 
-        final bool status = result['status'] == true;
+        // Debug: print response dari API
+        if (kDebugMode) {
+          print('=== RESPONSE DARI API ===');
+          print('Full response: $result');
+          print('========================');
+        }
+
+        // PERBAIKAN: Sesuaikan dengan response API (menggunakan 'status' bukan 'success')
+        final bool status =
+            result['status'] == true || result['success'] == true;
+        final String message =
+            result['message'] ?? 'Tidak ada pesan dari server';
 
         if (status) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message']),
-              backgroundColor: Colors.green,
-            ),
+            SnackBar(content: Text(message), backgroundColor: Colors.green),
           );
           Navigator.of(context).pop(true);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message']),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text(message), backgroundColor: Colors.red),
           );
         }
       } catch (e) {
+        if (kDebugMode) {
+          print('Error saat menyimpan: $e');
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Terjadi kesalahan: ${e.toString()}'),
@@ -457,6 +495,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
     );
   }
 
+  // PERBAIKAN: Date field dengan validasi yang lebih baik
   Widget _buildDateField(
     TextEditingController controller,
     String label,
@@ -469,12 +508,19 @@ class _AddUserScreenState extends State<AddUserScreen> {
         labelText: '$label *',
         hintText: 'Pilih $label',
         suffixIcon: const Icon(Icons.calendar_today),
+        errorStyle: const TextStyle(color: Colors.red),
       ),
       onTap: () => _selectDate(context, controller, isStartDate),
       validator: (value) {
-        if (value == null || value.isEmpty) {
+        // Validasi berdasarkan DateTime object
+        DateTime? dateToCheck = isStartDate
+            ? _jabatanMulaiDate
+            : _jabatanAkhirDate;
+
+        if (dateToCheck == null || value == null || value.isEmpty) {
           return '$label tidak boleh kosong';
         }
+
         return null;
       },
     );
