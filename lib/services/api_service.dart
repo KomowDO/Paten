@@ -19,10 +19,10 @@ class ApiService {
       'https://script.google.com/macros/s/AKfycbxcQi5y7UiatE61MQgFl9TGA7Bli_u303NjpSvxbz7d-zKNPQb7AXiWCMT9dXpm6CTu/exec';
 
   final String _addUserRtRwApiUrl =
-      'https://script.google.com/macros/s/AKfycbw8xP86JFS8DFuaE502MDhqN5wKB95TyCPzlDCk6DjGVKEagRC7VZpjQRzZXgYnc-qT/exec';
+      'https://script.google.com/macros/s/AKfycbzw5Cozyzk7Hbz9qAXPmwkCm28FeNH5OLy5_onHRn2ptYdUTeL4l-S-myJ9qlZzdPkq/exec';
 
   static const String jwtToken =
-      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1NjM0NzI2Mn0.80gG6Au9eQdvUHKuZ312Tl6i5QMCV_5VRP7_AFZf-7o';
+      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1NjQ1MDA5NX0.aefs6_VUx19KV8mEco29dKZ2Zu3GVFox_CenoQ2FtSk';
 
   ApiService() : _dio = Dio(), _publicDio = Dio() {
     _addAuthenticatedInterceptors(_dio);
@@ -102,47 +102,8 @@ class ApiService {
         final Map<String, dynamic> jsonResponse = response.data;
         if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
           final List<dynamic> dataList = jsonResponse['data'];
-          return dataList.map((item) {
-            if (item is Map &&
-                item.containsKey('id_jabatan_rt_rw') &&
-                item.containsKey('nama_jabatan')) {
-              return {
-                'id_jabatan': (item['id_jabatan_rt_rw'] as int?) ?? 0,
-                'nama': item['nama_jabatan'].toString(),
-              };
-            }
-            throw Exception('Format item data jabatan tidak valid.');
-          }).toList();
-        } else {
-          throw Exception(
-            'Respons API tidak mengandung kunci "data" yang valid.',
-          );
-        }
-      } else {
-        throw Exception(
-          'Gagal memuat daftar jabatan. Status Code: ${response.statusCode}',
-        );
-      }
-    } on DioException catch (e) {
-      throw Exception('Kesalahan jaringan saat memuat jabatan: ${e.message}');
-    } catch (e) {
-      throw Exception('Terjadi kesalahan tak terduga: $e');
-    }
-  }
 
-  Future<List<String>> fetchJabatanOptions() async {
-    try {
-      final response = await _publicDio.get(
-        _jabatanApiUrl,
-        queryParameters: {'lib': 'M_AeKjZaFOlawafwJcLPaaIaJ-zFb6PIO'},
-      );
-      if (response.statusCode == 200 && response.data != null) {
-        final Map<String, dynamic> jsonResponse = response.data;
-        if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
-          final List<dynamic> dataList = jsonResponse['data'];
-          return dataList
-              .map((item) => item['nama_jabatan'].toString())
-              .toList();
+          return dataList.map((item) => item as Map<String, dynamic>).toList();
         } else {
           throw Exception(
             'Respons API tidak mengandung kunci "data" yang valid.',
@@ -248,7 +209,7 @@ class ApiService {
     }
 
     try {
-      final response = await _dio.get(
+      final response = await _publicDio.get(
         _authApiUrl,
         queryParameters: {"user": username, "password": password},
         options: Options(
@@ -442,6 +403,8 @@ class ApiService {
     required int idPegawaiSession,
     required String kodeUnorSession,
     required String kodeUnorPegawaiSession,
+    required String jabatan,
+    required String jenis_jabatan,
   }) async {
     try {
       final Map<String, String> queryParams = {
@@ -459,6 +422,8 @@ class ApiService {
         'id_pegawai_session': idPegawaiSession.toString(),
         'kode_unor_session': kodeUnorSession,
         'kode_unor_pegawai_session': kodeUnorPegawaiSession,
+        'jabatan': jabatan,
+        'jenis_jabatan': jenis_jabatan,
       };
 
       final response = await _dio
@@ -488,6 +453,7 @@ class ApiService {
           'message': 'Gagal menambahkan user. Status: ${response.statusCode}',
         };
       }
+      ;
     } on DioException catch (e) {
       String message = 'Gagal menambahkan user: ${e.message}';
       if (e.response != null && e.response!.data != null) {

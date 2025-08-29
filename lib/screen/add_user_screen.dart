@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:dio/dio.dart';
 import 'package:paten/services/api_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
 import 'dart:convert';
 
 class AddUserScreen extends StatefulWidget {
@@ -21,25 +20,28 @@ class _AddUserScreenState extends State<AddUserScreen> {
   final TextEditingController _namaController = TextEditingController();
   final TextEditingController _alamatController = TextEditingController();
   final TextEditingController _teleponController = TextEditingController();
-  String? _selectedJabatan;
+  String? _selectedNamaJabatan;
   final TextEditingController _wilayahRtController = TextEditingController();
   final TextEditingController _wilayahRwController = TextEditingController();
   final TextEditingController _jabatanMulaiController = TextEditingController();
   final TextEditingController _jabatanAkhirController = TextEditingController();
 
+  List<Map<String, dynamic>> _allJabatanData = [];
   List<String> _jabatanOptions = [];
-  Map<String, int> _jabatanIdMap = {};
   bool _isJabatanLoading = true;
+
+  String? _jabatanValue;
+  String? _jenisJabatanValue;
+  int? _idJabatanValue;
 
   DateTime? _jabatanMulaiDate;
   DateTime? _jabatanAkhirDate;
-
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _fetchJabatanOptions();
+    _fetchJabatanData();
   }
 
   @override
@@ -55,28 +57,25 @@ class _AddUserScreenState extends State<AddUserScreen> {
     super.dispose();
   }
 
-  Future<void> _fetchJabatanOptions() async {
+  Future<void> _fetchJabatanData() async {
     setState(() {
       _isJabatanLoading = true;
     });
 
     try {
-      final fetchedJabatanData = await _apiService.fetchJabatanData();
-      final List<String> options = fetchedJabatanData
-          .map((item) => item['nama'].toString())
+      final fetchedData = await _apiService.fetchJabatanData();
+      final List<String> options = fetchedData
+          .map((item) => item['nama_jabatan'].toString())
           .toList();
-      final Map<String, int> idMap = Map.fromIterable(
-        fetchedJabatanData,
-        key: (item) => item['nama'].toString(),
-        value: (item) => (item['id_jabatan'] as int?) ?? 0,
-      );
 
       setState(() {
+        _allJabatanData = fetchedData;
         _jabatanOptions = options;
-        _jabatanIdMap = idMap;
       });
     } catch (e) {
-      print('Error saat memuat jabatan: $e');
+      if (kDebugMode) {
+        print('Error saat memuat jabatan: $e');
+      }
       if (_jabatanOptions.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -91,12 +90,6 @@ class _AddUserScreenState extends State<AddUserScreen> {
     }
   }
 
-  int? _getJabatanId(String? jabatanName) {
-    if (jabatanName == null) return null;
-    return _jabatanIdMap[jabatanName];
-  }
-
-  // PERBAIKAN: Method untuk select date dengan format yang konsisten
   Future<void> _selectDate(
     BuildContext context,
     TextEditingController controller,
@@ -115,11 +108,9 @@ class _AddUserScreenState extends State<AddUserScreen> {
         } else {
           _jabatanAkhirDate = picked;
         }
-        // Format untuk display di UI
         controller.text = DateFormat('dd/MM/yyyy').format(picked);
       });
 
-      // Debug: pastikan tanggal tersimpan
       if (kDebugMode) {
         print(
           'Selected ${isStartDate ? "Start" : "End"} Date: ${DateFormat('dd/MM/yyyy').format(picked)}',
@@ -129,18 +120,13 @@ class _AddUserScreenState extends State<AddUserScreen> {
     }
   }
 
-  // PERBAIKAN: Format tanggal untuk API (sesuaikan dengan yang diharapkan server)
   String _formatDateForApi(DateTime? date) {
     if (date == null) return '';
-    // Coba format yang berbeda jika DD/MM/YYYY tidak bekerja
-    // return DateFormat('yyyy-MM-dd').format(date); // Format ISO
-    return DateFormat('dd/MM/yyyy').format(date); // Format DD/MM/YYYY
+    return DateFormat('dd/MM/yyyy').format(date);
   }
 
-  // PERBAIKAN: Method simpan data dengan validasi yang lebih baik
   void _simpanData() async {
     if (_formKey.currentState!.validate()) {
-      // Validasi tambahan untuk tanggal
       if (_jabatanMulaiDate == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -150,7 +136,6 @@ class _AddUserScreenState extends State<AddUserScreen> {
         );
         return;
       }
-
       if (_jabatanAkhirDate == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -160,10 +145,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
         );
         return;
       }
-
-      // Validasi logis: tanggal akhir harus setelah tanggal mulai
-      if (_jabatanAkhirDate!.isBefore(_jabatanMulaiDate!) ||
-          _jabatanAkhirDate!.isAtSameMomentAs(_jabatanMulaiDate!)) {
+      if (_jabatanAkhirDate!.isBefore(_jabatanMulaiDate!)) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Tanggal akhir harus setelah tanggal mulai'),
@@ -178,12 +160,13 @@ class _AddUserScreenState extends State<AddUserScreen> {
       });
 
       try {
-        final idJabatan = _getJabatanId(_selectedJabatan);
-        if (idJabatan == null) {
+        if (_idJabatanValue == null ||
+            _jabatanValue == null ||
+            _jenisJabatanValue == null) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                'ID Jabatan tidak ditemukan. Silakan pilih jabatan yang valid.',
+                'Jabatan tidak valid. Silakan pilih jabatan dari daftar.',
               ),
               backgroundColor: Colors.red,
             ),
@@ -197,29 +180,12 @@ class _AddUserScreenState extends State<AddUserScreen> {
         final tglMulai = _formatDateForApi(_jabatanMulaiDate);
         final tglSelesai = _formatDateForApi(_jabatanAkhirDate);
 
-        // Debug: print semua data yang akan dikirim
-        if (kDebugMode) {
-          print('=== DATA YANG AKAN DIKIRIM ===');
-          print('NIK: ${_nikController.text}');
-          print('Nama: ${_namaController.text}');
-          print('Alamat: ${_alamatController.text}');
-          print('Telepon: ${_teleponController.text}');
-          print('ID Jabatan: $idJabatan');
-          print('Wilayah RT: ${_wilayahRtController.text}');
-          print('Wilayah RW: ${_wilayahRwController.text}');
-          print('Tanggal Mulai: $tglMulai (dari DateTime: $_jabatanMulaiDate)');
-          print(
-            'Tanggal Selesai: $tglSelesai (dari DateTime: $_jabatanAkhirDate)',
-          );
-          print('===============================');
-        }
-
         final result = await _apiService.addUserRtRw(
           nik: _nikController.text,
           nama: _namaController.text,
           alamat: _alamatController.text,
           telepon: _teleponController.text,
-          idJabatan: idJabatan,
+          idJabatan: _idJabatanValue!,
           wilayahRt: int.tryParse(_wilayahRtController.text) ?? 0,
           wilayahRw: int.tryParse(_wilayahRwController.text) ?? 0,
           tglMulai: tglMulai,
@@ -227,16 +193,10 @@ class _AddUserScreenState extends State<AddUserScreen> {
           idPegawaiSession: 40797,
           kodeUnorSession: '07.13.09',
           kodeUnorPegawaiSession: '07.13.09.03',
+          jabatan: _jabatanValue!,
+          jenis_jabatan: _jenisJabatanValue!,
         );
 
-        // Debug: print response dari API
-        if (kDebugMode) {
-          print('=== RESPONSE DARI API ===');
-          print('Full response: $result');
-          print('========================');
-        }
-
-        // PERBAIKAN: Sesuaikan dengan response API (menggunakan 'status' bukan 'success')
         final bool status =
             result['status'] == true || result['success'] == true;
         final String message =
@@ -334,7 +294,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
                                     style: TextStyle(color: Colors.red),
                                   ),
                                   TextButton(
-                                    onPressed: _fetchJabatanOptions,
+                                    onPressed: _fetchJabatanData,
                                     child: const Text('Coba Lagi'),
                                   ),
                                 ],
@@ -343,10 +303,39 @@ class _AddUserScreenState extends State<AddUserScreen> {
                           : _buildDropdownField(
                               'Jabatan',
                               _jabatanOptions,
-                              _selectedJabatan,
+                              _selectedNamaJabatan,
                               (String? newValue) {
                                 setState(() {
-                                  _selectedJabatan = newValue;
+                                  _selectedNamaJabatan = newValue;
+                                  if (newValue != null) {
+                                    final selectedData = _allJabatanData
+                                        .firstWhere(
+                                          (item) =>
+                                              item['nama_jabatan'] == newValue,
+                                          orElse: () => {},
+                                        );
+
+                                    if (selectedData.isNotEmpty) {
+                                      _idJabatanValue =
+                                          selectedData['id_jabatan_rt_rw']
+                                              as int?;
+                                      final parts = selectedData['nama_jabatan']
+                                          .toString()
+                                          .split(' ');
+                                      _jenisJabatanValue = parts.last;
+                                      _jabatanValue = parts
+                                          .sublist(0, parts.length - 1)
+                                          .join(' ');
+                                    } else {
+                                      _idJabatanValue = null;
+                                      _jabatanValue = null;
+                                      _jenisJabatanValue = null;
+                                    }
+                                  } else {
+                                    _idJabatanValue = null;
+                                    _jabatanValue = null;
+                                    _jenisJabatanValue = null;
+                                  }
                                 });
                               },
                             ),
@@ -495,7 +484,6 @@ class _AddUserScreenState extends State<AddUserScreen> {
     );
   }
 
-  // PERBAIKAN: Date field dengan validasi yang lebih baik
   Widget _buildDateField(
     TextEditingController controller,
     String label,
@@ -512,7 +500,6 @@ class _AddUserScreenState extends State<AddUserScreen> {
       ),
       onTap: () => _selectDate(context, controller, isStartDate),
       validator: (value) {
-        // Validasi berdasarkan DateTime object
         DateTime? dateToCheck = isStartDate
             ? _jabatanMulaiDate
             : _jabatanAkhirDate;
@@ -520,7 +507,6 @@ class _AddUserScreenState extends State<AddUserScreen> {
         if (dateToCheck == null || value == null || value.isEmpty) {
           return '$label tidak boleh kosong';
         }
-
         return null;
       },
     );

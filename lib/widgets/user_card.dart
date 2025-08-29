@@ -99,7 +99,7 @@ class _UserCardState extends State<UserCard> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '${widget.user.rt ?? '-'}',
+                              ' ${widget.user.rt ?? ''}',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey[800],
