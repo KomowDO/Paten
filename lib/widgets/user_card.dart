@@ -251,6 +251,11 @@ class _UserCardState extends State<UserCard> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                minimumSize: Size.zero,
               ),
               onPressed: () {
                 if (widget.onResetPassword != null) {
