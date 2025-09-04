@@ -1,11 +1,9 @@
-// File: lib/screen/user_list_screen.dart
 import 'package:flutter/material.dart';
 import 'package:paten/models/user.dart';
 import 'package:paten/screen/add_user_screen.dart';
 import 'package:paten/screen/edit_user_screen.dart';
 import 'package:paten/widgets/user_card.dart';
 import 'package:paten/services/api_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class UserListScreen extends StatefulWidget {
   const UserListScreen({super.key});
@@ -15,6 +13,9 @@ class UserListScreen extends StatefulWidget {
 }
 
 class _UserListScreenState extends State<UserListScreen> {
+  final ApiService _apiService = ApiService();
+  final ScrollController _scrollController = ScrollController();
+
   bool _isFilterVisible = false;
 
   String? _selectedKecamatan;
@@ -25,16 +26,18 @@ class _UserListScreenState extends State<UserListScreen> {
 
   final String _kodeUnorPegawai = '07.13.09.03';
 
-  late Future<List<User>> _usersFuture;
+  List<User> _users = [];
+  bool _isLoading = true;
+  bool _isFetchingMore = false;
   int _currentPage = 1;
   final int _pageSize = 10;
-  List<User> _currentUsers = [];
-  final ApiService _apiService = ApiService();
+  bool _hasMoreData = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchUsers();
+    _fetchUsers(isInitialLoad: true);
+    _scrollController.addListener(_onScroll);
   }
 
   @override
@@ -42,12 +45,34 @@ class _UserListScreenState extends State<UserListScreen> {
     _rwController.dispose();
     _rtController.dispose();
     _keywordController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  void _fetchUsers() {
+  void _onScroll() {
+    if (_scrollController.position.pixels ==
+            _scrollController.position.maxScrollExtent &&
+        !_isFetchingMore &&
+        _hasMoreData) {
+      _fetchUsers(isInitialLoad: false);
+    }
+  }
+
+  Future<void> _fetchUsers({required bool isInitialLoad}) async {
+    if (_isFetchingMore) return;
+
     setState(() {
-      _usersFuture = _apiService.getUsers(
+      if (isInitialLoad) {
+        _isLoading = true;
+        _users = [];
+        _currentPage = 1;
+      } else {
+        _isFetchingMore = true;
+      }
+    });
+
+    try {
+      final fetchedUsers = await _apiService.getUsers(
         page: _currentPage,
         limit: _pageSize,
         kode_unor_pegawai: _kodeUnorPegawai,
@@ -57,21 +82,24 @@ class _UserListScreenState extends State<UserListScreen> {
         filter_no_rt: _rtController.text,
         keyword: _keywordController.text,
       );
-    });
-  }
 
-  void _onNextPage() {
-    setState(() {
-      _currentPage++;
-    });
-    _fetchUsers();
-  }
-
-  void _onPreviousPage() {
-    setState(() {
-      _currentPage--;
-    });
-    _fetchUsers();
+      setState(() {
+        _users.addAll(fetchedUsers);
+        _currentPage++;
+        _hasMoreData = fetchedUsers.length == _pageSize;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memuat data: ${e.toString()}')),
+        );
+      }
+    } finally {
+      setState(() {
+        _isLoading = false;
+        _isFetchingMore = false;
+      });
+    }
   }
 
   Future<void> _onAddUser() async {
@@ -80,7 +108,7 @@ class _UserListScreenState extends State<UserListScreen> {
       MaterialPageRoute(builder: (context) => const AddUserScreen()),
     );
     if (shouldRefresh == true) {
-      _fetchUsers();
+      _fetchUsers(isInitialLoad: true);
     }
   }
 
@@ -90,7 +118,7 @@ class _UserListScreenState extends State<UserListScreen> {
       MaterialPageRoute(builder: (context) => EditUserScreen(user: user)),
     );
     if (shouldRefresh == true) {
-      _fetchUsers();
+      _fetchUsers(isInitialLoad: true);
     }
   }
 
@@ -177,7 +205,7 @@ class _UserListScreenState extends State<UserListScreen> {
           ),
         );
       }
-      _fetchUsers();
+      _fetchUsers(isInitialLoad: true);
     }
   }
 
@@ -188,9 +216,8 @@ class _UserListScreenState extends State<UserListScreen> {
       _rwController.clear();
       _rtController.clear();
       _keywordController.clear();
-      _currentPage = 1;
     });
-    _fetchUsers();
+    _fetchUsers(isInitialLoad: true);
   }
 
   @override
@@ -203,8 +230,10 @@ class _UserListScreenState extends State<UserListScreen> {
       body: Column(
         children: [
           _buildCollapsibleFilter(),
+
+          // ... bagian kode lainnya ...
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(16.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -212,74 +241,61 @@ class _UserListScreenState extends State<UserListScreen> {
                   onPressed: _onAddUser,
                   icon: const Icon(Icons.add),
                   label: const Text('Tambah Data'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF03038E),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 48, // Lebih lebar
+                      vertical: 12, // Tinggi yang sesuai
+                    ),
+                    minimumSize: const Size(160, 48), // Ukuran minimum
+                  ),
                 ),
-                TextButton.icon(
-                  onPressed: _fetchUsers,
+                // Mengubah TextButton menjadi ElevatedButton untuk tombol Refresh
+                ElevatedButton.icon(
+                  onPressed: () => _fetchUsers(isInitialLoad: true),
                   icon: const Icon(Icons.refresh),
                   label: const Text('Refresh Data'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueGrey,
+                    foregroundColor: Colors.white,
+                    // Penyesuaian padding untuk tombol "Refresh"
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16, // Lebih kecil dari Tambah Data
+                      vertical: 12, // Tinggi yang sama
+                    ),
+                    minimumSize: const Size(120, 48), // Ukuran minimum
+                  ),
                 ),
               ],
             ),
           ),
           Expanded(
-            child: FutureBuilder<List<User>>(
-              future: _usersFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text(
-                        'Gagal mengambil data: ${snapshot.error}',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    ),
-                  );
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('Tidak ada data pengguna.'));
-                } else {
-                  final users = snapshot.data!;
-                  return Column(
-                    children: [
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: users.length,
-                          itemBuilder: (context, index) {
-                            return UserCard(
-                              user: users[index],
-                              onEdit: _onEditUser,
-                              onResetPassword: _onResetPassword,
-                              onDelete: _onDeleteUser,
-                            );
-                          },
-                        ),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          TextButton(
-                            onPressed: _currentPage > 1
-                                ? _onPreviousPage
-                                : null,
-                            child: const Text('Previous'),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _users.isEmpty
+                ? const Center(child: Text('Tidak ada data pengguna.'))
+                : ListView.builder(
+                    controller: _scrollController,
+                    itemCount: _users.length + (_isFetchingMore ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == _users.length) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: CircularProgressIndicator(),
                           ),
-                          Text('Halaman $_currentPage'),
-                          TextButton(
-                            onPressed: users.length == _pageSize
-                                ? _onNextPage
-                                : null,
-                            child: const Text('Next'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  );
-                }
-              },
-            ),
+                        );
+                      }
+                      final user = _users[index];
+                      return UserCard(
+                        user: user,
+                        onEdit: _onEditUser,
+                        onResetPassword: _onResetPassword,
+                        onDelete: _onDeleteUser,
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -347,7 +363,7 @@ class _UserListScreenState extends State<UserListScreen> {
               suffixIcon: Icon(Icons.search),
             ),
             onSubmitted: (value) {
-              _fetchUsers();
+              _fetchUsers(isInitialLoad: true);
             },
           ),
           const SizedBox(height: 8),
@@ -411,7 +427,7 @@ class _UserListScreenState extends State<UserListScreen> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               ElevatedButton(
-                onPressed: _fetchUsers,
+                onPressed: () => _fetchUsers(isInitialLoad: true),
                 child: const Text('Terapkan Filter'),
               ),
               const SizedBox(width: 8),

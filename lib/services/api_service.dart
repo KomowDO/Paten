@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'dart:convert';
-import 'package:paten/models/user.dart';
+import 'package:paten/models/user.dart'; // Import model untuk user reguler
+import 'package:paten/models/user_thl.dart'; // Import model untuk user THL
 
 class ApiService {
   final Dio _dio;
@@ -12,8 +13,11 @@ class ApiService {
   final String _userListApiUrl =
       'https://script.google.com/macros/s/AKfycbz6i1pWIsHXwjbJVGrD3WFN8iNmFvEe23yZD0brdHCC-7zewdFHrIZ_r5QGORCtIAc00w/exec';
 
+  final String _thlUserListApiUrl =
+      'https://script.google.com/macros/s/AKfycbyTeVoqIQ3nYZc-_R3mdvEnPnGTdhJfB5PzRZ2Kdb3iETV3iD7hrPmHdBkUPaNynL_j/exec';
+
   final String _authApiUrl =
-      'https://script.google.com/macros/s/AKfycbwG-v3LTRy6GHhd1h930JSBcvRa3_6tSnqUvy2m4xBpLoSE2esNQIgkDcK2D0m8pRKisg/exec';
+      'https://script.google.com/macros/s/AKfycbwG-v3LTRy6GHhd1h930JSBcvRa3_6tSnqUvy2m4xBpLoSE2esNQIgDcC2D0m8pRKisg/exec';
 
   final String _mainApiUrl =
       'https://script.google.com/macros/s/AKfycbxcQi5y7UiatE61MQgFl9TGA7Bli_u303NjpSvxbz7d-zKNPQb7AXiWCMT9dXpm6CTu/exec';
@@ -22,7 +26,7 @@ class ApiService {
       'https://script.google.com/macros/s/AKfycbzw5Cozyzk7Hbz9qAXPmwkCm28FeNH5OLy5_onHRn2ptYdUTeL4l-S-myJ9qlZzdPkq/exec';
 
   static const String jwtToken =
-      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1NjQ1MDA5NX0.aefs6_VUx19KV8mEco29dKZ2Zu3GVFox_CenoQ2FtSk';
+      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1Njk2Mzc0NH0.xLOQI0PNilLjDTVxvJvrz21jJPeCWRpXW4ulk6SSnRg';
 
   ApiService() : _dio = Dio(), _publicDio = Dio() {
     _addAuthenticatedInterceptors(_dio);
@@ -102,7 +106,6 @@ class ApiService {
         final Map<String, dynamic> jsonResponse = response.data;
         if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
           final List<dynamic> dataList = jsonResponse['data'];
-
           return dataList.map((item) => item as Map<String, dynamic>).toList();
         } else {
           throw Exception(
@@ -121,6 +124,7 @@ class ApiService {
     }
   }
 
+  // Regular user list function (existing)
   Future<List<User>> getUsers({
     int page = 1,
     int limit = 45,
@@ -161,6 +165,7 @@ class ApiService {
         final Map<String, dynamic> jsonResponse = response.data;
         if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
           List<dynamic> data = jsonResponse['data'];
+          // Parsing dengan model User
           return data.map((json) => User.fromJson(json)).toList();
         } else {
           throw Exception(
@@ -185,6 +190,81 @@ class ApiService {
       throw Exception('An unexpected error occurred: $e');
     }
   }
+
+  // --- Fungsi Baru: `getThlUsers` dengan Model `UserTHL` ---
+  Future<List<UserTHL>> getThlUsers({
+    int page = 1,
+    int limit = 10,
+    required String kode_unor_pegawai,
+    String? keyword,
+  }) async {
+    try {
+      Map<String, dynamic> queryParameters = {
+        'endpoint': 'list_user_thl',
+        'jwt_token': jwtToken,
+        'page': page,
+        'limit': limit,
+        'kode_unor_pegawai': kode_unor_pegawai,
+      };
+
+      if (keyword != null && keyword.isNotEmpty) {
+        queryParameters['keyword'] = keyword;
+      }
+
+      final response = await _publicDio.get(
+        _thlUserListApiUrl,
+        queryParameters: queryParameters,
+        options: Options(
+          validateStatus: (status) => true,
+          followRedirects: true,
+          maxRedirects: 5,
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final Map<String, dynamic> jsonResponse = response.data;
+
+        if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
+          List<dynamic> data = jsonResponse['data'];
+          // Parsing dengan model UserTHL
+          return data.map((json) => UserTHL.fromJson(json)).toList();
+        } else if (jsonResponse.containsKey('status') &&
+            jsonResponse['status'] == false) {
+          throw Exception(
+            jsonResponse['message'] ?? 'API returned error status',
+          );
+        } else {
+          throw Exception(
+            'Invalid API response format: "data" key not found or not a list.',
+          );
+        }
+      } else {
+        throw Exception(
+          'Failed to load THL users with status code: ${response.statusCode}',
+        );
+      }
+    } on DioException catch (e) {
+      String errorMessage;
+      if (e.response != null) {
+        if (e.response!.data is Map<String, dynamic>) {
+          final errorData = e.response!.data as Map<String, dynamic>;
+          errorMessage =
+              errorData['message'] ??
+              'Failed to load THL users: ${e.response!.statusCode} - ${e.response!.statusMessage}';
+        } else {
+          errorMessage =
+              'Failed to load THL users: ${e.response!.statusCode} - ${e.response!.statusMessage}';
+        }
+      } else {
+        errorMessage = 'Failed to connect to the server: ${e.message}';
+      }
+      throw Exception(errorMessage);
+    } catch (e) {
+      throw Exception('An unexpected error occurred: $e');
+    }
+  }
+
+  // Fungsi-fungsi lainnya tetap di sini
 
   Future<Response> updateUserData(Map<String, dynamic> data) async {
     print("Simulasi: Mengirim data ke API update: $data");
@@ -453,7 +533,6 @@ class ApiService {
           'message': 'Gagal menambahkan user. Status: ${response.statusCode}',
         };
       }
-      ;
     } on DioException catch (e) {
       String message = 'Gagal menambahkan user: ${e.message}';
       if (e.response != null && e.response!.data != null) {

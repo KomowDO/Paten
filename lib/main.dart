@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:paten/screen/login.dart'; // Pastikan import ini ada
-import 'package:paten/screen/user_list_screen.dart';
+import 'package:paten/screen/user_list_screen.dart'; // Import yang benar
+
+// Import ini tidak lagi dibutuhkan, tapi bisa disimpan jika Anda ingin kembali ke halaman login
+// import 'package:paten/screen/login.dart';
 import 'package:paten/services/api_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Memastikan interceptor ditambahkan hanya satu kali saat aplikasi dimulai.
   ApiService().addInterceptors();
-
   runApp(const MyApp());
 }
 
@@ -50,8 +49,8 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      // Navigasi dimulai dari halaman LoginScreen
-      home: const LoginPage(),
+      // Navigasi dimulai dari halaman THLUserListScreen
+      home: const UserListScreen(),
     );
   }
 }

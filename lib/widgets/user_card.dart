@@ -243,8 +243,15 @@ class _UserCardState extends State<UserCard> {
             ),
             const SizedBox(width: 8),
             TextButton.icon(
-              icon: const Icon(Icons.lock_reset),
-              label: const Text('Reset Password'),
+              icon: const Icon(Icons.lock_reset, size: 16),
+              label: const Text(
+                'Reset Password',
+                style: TextStyle(fontSize: 12),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+              ),
               onPressed: () {
                 if (widget.onResetPassword != null) {
                   widget.onResetPassword!(widget.user);
