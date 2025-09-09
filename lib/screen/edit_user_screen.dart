@@ -32,12 +32,71 @@ class _EditUserScreenState extends State<EditUserScreen> {
   Map<String, int> _jabatanIdMap = {};
 
   bool _isLoading = false;
+  bool _isDataLoading = true; // State baru untuk mengontrol loading data awal
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
-    _fetchJabatanOptions();
+    // Panggil fungsi inisialisasi yang terpusat
+    _initializeData();
+  }
+
+  // Fungsi untuk memuat semua data yang dibutuhkan secara berurutan
+  void _initializeData() async {
+    // Atur state loading menjadi true
+    setState(() {
+      _isDataLoading = true;
+    });
+
+    try {
+      // Panggil fungsi asinkron untuk mengambil opsi jabatan
+      await _fetchJabatanOptions();
+
+      // Setelah opsi jabatan siap, baru muat data user
+      _loadUserData();
+    } catch (e) {
+      // Tangani kesalahan jika ada masalah saat memuat data
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal memuat data awal: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      // Matikan loading, terlepas dari keberhasilan atau kegagalan
+      setState(() {
+        _isDataLoading = false;
+      });
+    }
+  }
+
+  // Fungsi ini memanggil API dan memproses data jabatan
+  Future<void> _fetchJabatanOptions() async {
+    try {
+      final fetchedJabatanData = await _apiService.fetchJabatanData();
+
+      // PERBAIKAN: Gunakan kunci 'nama_jabatan'
+      final List<String> options = fetchedJabatanData
+          .map((item) => item['nama_jabatan'].toString())
+          .toSet() // Menghilangkan duplikasi
+          .toList();
+
+      // PERBAIKAN: Gunakan kunci 'id_jabatan_rt_rw'
+      final Map<String, int> idMap = Map.fromIterable(
+        fetchedJabatanData,
+        key: (item) => item['nama_jabatan'].toString(),
+        value: (item) => (item['id_jabatan_rt_rw'] as int?) ?? 0,
+      );
+
+      setState(() {
+        _jabatanOptions = options;
+        _jabatanIdMap = idMap;
+      });
+    } catch (e) {
+      print("Error fetching jabatan: $e");
+      // Menangani error secara lokal
+      rethrow;
+    }
   }
 
   void _loadUserData() {
@@ -53,16 +112,21 @@ class _EditUserScreenState extends State<EditUserScreen> {
     _jabatanMulaiController.text = _formatDateForDisplay(user.jabatan_mulai);
     _jabatanAkhirController.text = _formatDateForDisplay(user.jabatan_akhir);
 
-    _selectedJabatan = user.jabatan;
+    // Cek apakah jabatan user ada di daftar opsi yang sudah dimuat
+    if (_jabatanOptions.contains(user.jabatan)) {
+      _selectedJabatan = user.jabatan;
+    } else {
+      _selectedJabatan = null;
+    }
 
     try {
       if (user.jabatan_mulai != null && user.jabatan_mulai != '0000-00-00') {
-        _jabatanMulaiDate = DateFormat('dd/MM/yyyy').parse(user.jabatan_mulai!);
+        _jabatanMulaiDate = DateFormat('yyyy-MM-dd').parse(user.jabatan_mulai!);
       }
     } catch (_) {}
     try {
       if (user.jabatan_akhir != null && user.jabatan_akhir != '0000-00-00') {
-        _jabatanAkhirDate = DateFormat('dd/MM/yyyy').parse(user.jabatan_akhir!);
+        _jabatanAkhirDate = DateFormat('yyyy-MM-dd').parse(user.jabatan_akhir!);
       }
     } catch (_) {}
   }
@@ -74,31 +138,10 @@ class _EditUserScreenState extends State<EditUserScreen> {
       return '';
     }
     try {
-      final dateTime = DateFormat('dd/MM/yyyy').parse(dateString);
+      final dateTime = DateFormat('yyyy-MM-dd').parse(dateString);
       return DateFormat('dd/MM/yyyy', 'id').format(dateTime);
     } catch (e) {
       return dateString ?? '';
-    }
-  }
-
-  Future<void> _fetchJabatanOptions() async {
-    try {
-      final fetchedJabatanData = await _apiService.fetchJabatanData();
-      final List<String> options = fetchedJabatanData
-          .map((item) => item['nama'].toString())
-          .toList();
-      final Map<String, int> idMap = Map.fromIterable(
-        fetchedJabatanData,
-        key: (item) => item['nama'].toString(),
-        value: (item) => (item['id_jabatan'] as int?) ?? 0,
-      );
-
-      setState(() {
-        _jabatanOptions = options;
-        _jabatanIdMap = idMap;
-      });
-    } catch (e) {
-      print("Error fetching jabatan: $e");
     }
   }
 
@@ -226,108 +269,126 @@ class _EditUserScreenState extends State<EditUserScreen> {
         title: const Text('Edit Pengguna RT/RW'),
         centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                controller: _nikController,
-                decoration: _inputDecoration('NIK'),
-                readOnly: true,
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _namaController,
-                decoration: _inputDecoration('Nama'),
-                validator: (value) =>
-                    value!.isEmpty ? 'Nama tidak boleh kosong' : null,
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _alamatController,
-                decoration: _inputDecoration('Alamat'),
-                validator: (value) =>
-                    value!.isEmpty ? 'Alamat tidak boleh kosong' : null,
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _teleponController,
-                decoration: _inputDecoration('No. WA'),
-                validator: (value) =>
-                    value!.isEmpty ? 'Nomor WA tidak boleh kosong' : null,
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _wilayahRtController,
-                decoration: _inputDecoration('RT'),
-                keyboardType: TextInputType.number,
-                validator: (value) =>
-                    value!.isEmpty ? 'RT tidak boleh kosong' : null,
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _wilayahRwController,
-                decoration: _inputDecoration('RW'),
-                keyboardType: TextInputType.number,
-                validator: (value) =>
-                    value!.isEmpty ? 'RW tidak boleh kosong' : null,
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: _selectedJabatan,
-                decoration: _inputDecoration('Jabatan'),
-                items: _jabatanOptions.map((jabatan) {
-                  return DropdownMenuItem(value: jabatan, child: Text(jabatan));
-                }).toList(),
-                onChanged: (value) => setState(() => _selectedJabatan = value),
-                validator: (value) =>
-                    value == null ? 'Jabatan tidak boleh kosong' : null,
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _jabatanMulaiController,
-                decoration: _inputDecoration('Jabatan Mulai (dd/MM/yyyy)'),
-                readOnly: true,
-                onTap: () =>
-                    _selectDate(context, _jabatanMulaiController, true),
-                validator: (value) =>
-                    value!.isEmpty ? 'Tanggal mulai tidak boleh kosong' : null,
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _jabatanAkhirController,
-                decoration: _inputDecoration('Jabatan Akhir (dd/MM/yyyy)'),
-                readOnly: true,
-                onTap: () =>
-                    _selectDate(context, _jabatanAkhirController, false),
-                validator: (value) =>
-                    value!.isEmpty ? 'Tanggal akhir tidak boleh kosong' : null,
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _simpanData,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF03038E),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(color: Colors.white),
-                        )
-                      : const Text('Simpan', style: TextStyle(fontSize: 14)),
+      // Tampilkan indikator loading saat _isDataLoading true
+      body: _isDataLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Form(
+                key: _formKey,
+                child: ListView(
+                  children: [
+                    TextFormField(
+                      controller: _nikController,
+                      decoration: _inputDecoration('NIK'),
+                      readOnly: true,
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _namaController,
+                      decoration: _inputDecoration('Nama'),
+                      validator: (value) =>
+                          value!.isEmpty ? 'Nama tidak boleh kosong' : null,
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _alamatController,
+                      decoration: _inputDecoration('Alamat'),
+                      validator: (value) =>
+                          value!.isEmpty ? 'Alamat tidak boleh kosong' : null,
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _teleponController,
+                      decoration: _inputDecoration('No. WA'),
+                      validator: (value) =>
+                          value!.isEmpty ? 'Nomor WA tidak boleh kosong' : null,
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _wilayahRtController,
+                      decoration: _inputDecoration('RT'),
+                      keyboardType: TextInputType.number,
+                      validator: (value) =>
+                          value!.isEmpty ? 'RT tidak boleh kosong' : null,
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _wilayahRwController,
+                      decoration: _inputDecoration('RW'),
+                      keyboardType: TextInputType.number,
+                      validator: (value) =>
+                          value!.isEmpty ? 'RW tidak boleh kosong' : null,
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: _selectedJabatan,
+                      decoration: _inputDecoration('Jabatan'),
+                      items: _jabatanOptions.map((jabatan) {
+                        return DropdownMenuItem(
+                          value: jabatan,
+                          child: Text(jabatan),
+                        );
+                      }).toList(),
+                      onChanged: (value) =>
+                          setState(() => _selectedJabatan = value),
+                      validator: (value) =>
+                          value == null ? 'Jabatan tidak boleh kosong' : null,
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _jabatanMulaiController,
+                      decoration: _inputDecoration(
+                        'Jabatan Mulai (dd/MM/yyyy)',
+                      ),
+                      readOnly: true,
+                      onTap: () =>
+                          _selectDate(context, _jabatanMulaiController, true),
+                      validator: (value) => value!.isEmpty
+                          ? 'Tanggal mulai tidak boleh kosong'
+                          : null,
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _jabatanAkhirController,
+                      decoration: _inputDecoration(
+                        'Jabatan Akhir (dd/MM/yyyy)',
+                      ),
+                      readOnly: true,
+                      onTap: () =>
+                          _selectDate(context, _jabatanAkhirController, false),
+                      validator: (value) => value!.isEmpty
+                          ? 'Tanggal akhir tidak boleh kosong'
+                          : null,
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _simpanData,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF03038E),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'Simpan',
+                                style: TextStyle(fontSize: 14),
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 }

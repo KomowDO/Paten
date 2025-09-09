@@ -17,7 +17,7 @@ class ApiService {
       'https://script.google.com/macros/s/AKfycbyTeVoqIQ3nYZc-_R3mdvEnPnGTdhJfB5PzRZ2Kdb3iETV3iD7hrPmHdBkUPaNynL_j/exec';
 
   final String _authApiUrl =
-      'https://script.google.com/macros/s/AKfycbwG-v3LTRy6GHhd1h930JSBcvRa3_6tSnqUvy2m4xBpLoSE2esNQIgDcC2D0m8pRKisg/exec';
+      'https://script.google.com/macros/s/AKfycbwG-v3LTRy6GHhd1h930JSBcvRa3_6tSnqUvy2m4xBpLoSE2esNQIgkDcK2D0m8pRKisg/exec';
 
   final String _mainApiUrl =
       'https://script.google.com/macros/s/AKfycbxcQi5y7UiatE61MQgFl9TGA7Bli_u303NjpSvxbz7d-zKNPQb7AXiWCMT9dXpm6CTu/exec';
@@ -26,7 +26,8 @@ class ApiService {
       'https://script.google.com/macros/s/AKfycbzw5Cozyzk7Hbz9qAXPmwkCm28FeNH5OLy5_onHRn2ptYdUTeL4l-S-myJ9qlZzdPkq/exec';
 
   static const String jwtToken =
-      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1NzM4NTQ5NX0.07ZRDO2nL6Ag7YCfX9Z4RyFo7jMRzyEnsjiI-Q_FThI';
+      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1NzQwMTE0OX0.z9YHtTDN2sw7cJatvzLEKwok7FpQ_dXRaBvX3GgmNwY';
+
   ApiService() : _dio = Dio(), _publicDio = Dio() {
     _addAuthenticatedInterceptors(_dio);
     _addPublicInterceptors(_publicDio);
@@ -87,6 +88,17 @@ class ApiService {
         },
       ),
     );
+
+    // Tambahkan interceptor khusus untuk debugging
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onResponse: (response, handler) {
+          print("✅ Final URL: ${response.realUri}");
+          print("✅ Content-Type: ${response.headers.value('content-type')}");
+          return handler.next(response);
+        },
+      ),
+    );
   }
 
   void removeBearerToken() {
@@ -126,7 +138,7 @@ class ApiService {
   // Regular user list function (existing)
   Future<List<User>> getUsers({
     int page = 1,
-    int limit = 1000,
+    int limit = 45,
     required String kode_unor_pegawai,
     String? filter_kecamatan,
     String? filter_kelurahan,
@@ -279,6 +291,7 @@ class ApiService {
     return null;
   }
 
+  // FIXED LOGIN FUNCTION
   Future<Map<String, dynamic>> login(String username, String password) async {
     if (username.isEmpty || password.isEmpty) {
       return {
@@ -293,118 +306,142 @@ class ApiService {
         queryParameters: {"user": username, "password": password},
         options: Options(
           headers: {
-            "User-Agent":
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36",
-          },
-          validateStatus: (status) {
-            return true;
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (compatible; Flutter App)",
           },
           followRedirects: true,
           maxRedirects: 5,
+          validateStatus: (status) => true, // Accept all status codes
         ),
       );
 
-      if (response.statusCode == 200 && response.data != null) {
-        Map<String, dynamic> parsedResponse;
-        if (response.data is String) {
-          try {
-            final decoded = json.decode(response.data);
-            if (decoded is Map<String, dynamic>) {
-              parsedResponse = decoded;
-            } else {
-              return {
-                'success': false,
-                'message': 'Respon tidak valid dari server.',
-              };
-            }
-          } catch (e) {
-            return {
-              'success': false,
-              'message': 'Respon tidak valid dari server (JSON parse error).',
-            };
-          }
-        } else if (response.data is Map<String, dynamic>) {
-          parsedResponse = response.data;
-        } else {
-          return {'success': false, 'message': 'Format respons tidak dikenal.'};
-        }
+      print("🔍 Status code: ${response.statusCode}");
+      print("🔍 Full Response: ${response.data}");
+      print("🔍 Response Type: ${response.data.runtimeType}");
+      print("🔍 Content-Type: ${response.headers.value('content-type')}");
 
-        if (parsedResponse.containsKey('success') &&
-            parsedResponse['success'] == true) {
-          String? accessToken;
-          if (parsedResponse.containsKey('data') &&
-              parsedResponse['data'] is Map<String, dynamic>) {
-            final Map<String, dynamic> data = parsedResponse['data'];
-            accessToken = data['access_token']?.toString();
-          }
-          return {
-            'success': true,
-            'message': parsedResponse['message'] ?? 'Login berhasil!',
-            'user_data': parsedResponse,
-            'access_token': accessToken,
-          };
-        } else {
-          return {
-            'success': false,
-            'message':
-                parsedResponse['message'] ??
-                'Login gagal. Respon tidak lengkap.',
-          };
-        }
-      } else if (response.statusCode == 302 ||
-          (response.data is String &&
-              response.data.toString().contains('<html'))) {
-        return {
-          'success': false,
-          'message': 'API ini mengalihkan Anda ke halaman HTML.',
-        };
-      } else {
-        return {
-          'success': false,
-          'message': 'Login gagal. Status Code: ${response.statusCode}.',
-        };
-      }
-    } on DioException catch (e) {
-      if (e.response != null) {
-        if (e.response?.data is Map<String, dynamic>) {
-          return {
-            'success': false,
-            'message': e.response?.data['message'] ?? 'Kesalahan dari server.',
-          };
-        } else if (e.response?.data is String) {
-          try {
-            final Map<String, dynamic> errorData = json.decode(
-              e.response!.data,
-            );
-            return {
-              'success': false,
-              'message':
-                  errorData['message'] ??
-                  'Kesalahan dari server (JSON parse error).',
-            };
-          } catch (_) {
-            return {
-              'success': false,
-              'message':
-                  'Kesalahan dari server: ${e.response?.statusCode ?? ''} ${e.response?.statusMessage ?? ''}',
-            };
-          }
-        } else {
-          return {
-            'success': false,
-            'message':
-                'Kesalahan dari server: ${e.response?.statusCode ?? ''} ${e.response?.statusMessage ?? ''}',
-          };
-        }
-      } else {
+      // Handle different status codes
+      if (response.statusCode == 500) {
         return {
           'success': false,
           'message':
-              'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.',
+              'Server mengalami error internal (500). Periksa Google Apps Script.',
         };
       }
+
+      // Check if response is HTML error page
+      if (response.headers.value('content-type')?.contains('text/html') ==
+          true) {
+        return {
+          'success': false,
+          'message':
+              'Google Apps Script mengembalikan error page. Periksa script di Google Console.',
+        };
+      }
+
+      if (response.statusCode == 200 && response.data != null) {
+        Map<String, dynamic> responseData;
+
+        // Handle different response types
+        if (response.data is Map<String, dynamic>) {
+          responseData = response.data;
+        } else if (response.data is String) {
+          try {
+            responseData = json.decode(response.data);
+          } catch (e) {
+            return {
+              'success': false,
+              'message': 'Response bukan JSON yang valid.',
+            };
+          }
+        } else {
+          return {
+            'success': false,
+            'message': 'Format response tidak dikenali.',
+          };
+        }
+
+        // Log detailed response structure
+        print("🔍 Parsed Response: $responseData");
+        print("🔍 Response Keys: ${responseData.keys.toList()}");
+
+        // Check if login is successful
+        bool isLoginSuccessful = false;
+
+        // Check various success indicators
+        if (responseData['success'] == true ||
+            responseData['status'] == true ||
+            responseData['message']?.toString().toLowerCase().contains(
+                  'berhasil',
+                ) ==
+                true) {
+          isLoginSuccessful = true;
+        }
+
+        if (isLoginSuccessful) {
+          // Extract user data
+          final userData = responseData['data'] ?? responseData;
+
+          print("🔍 User Data: $userData");
+
+          // Extract access token from response
+          String? accessToken;
+
+          // Look for access_token in the main response
+          if (responseData['access_token'] != null) {
+            accessToken = responseData['access_token'].toString();
+          }
+          // Also check in userData
+          else if (userData != null && userData['access_token'] != null) {
+            accessToken = userData['access_token'].toString();
+          }
+          // Fallback to static JWT token if no access token found
+          else {
+            accessToken = jwtToken;
+          }
+
+          print("🔍 Access Token Found: ${accessToken != null ? 'YES' : 'NO'}");
+          print("🔍 Token: ${accessToken?.substring(0, 50)}...");
+
+          return {
+            'success': true,
+            'message': responseData['message'] ?? 'Login berhasil',
+            'data': userData,
+            'user_data': userData,
+            'token': accessToken,
+            'access_token': accessToken,
+            'user_id': userData?['user_id'],
+            'id_pegawai': userData?['id_pegawai'],
+            'nip': userData?['nip'],
+            'nama_pegawai': userData?['nama_pegawai'],
+            'status_kepegawaian': userData?['status_kepegawaian'],
+          };
+        } else {
+          return {
+            'success': false,
+            'message':
+                responseData['message'] ??
+                'Login gagal - kredensial tidak valid.',
+          };
+        }
+      }
+
+      return {
+        'success': false,
+        'message': 'Login gagal. Status Code: ${response.statusCode}',
+      };
+    } on DioException catch (e) {
+      print("❌ DioException: ${e.type}");
+      print("❌ Error message: ${e.message}");
+      if (e.response != null) {
+        print("❌ Response status: ${e.response!.statusCode}");
+        print("❌ Response data: ${e.response!.data}");
+      }
+
+      return {'success': false, 'message': 'Kesalahan jaringan: ${e.message}'};
     } catch (e) {
-      return {'success': false, 'message': 'Terjadi kesalahan tak terduga: $e'};
+      print("❌ Unexpected error: $e");
+      return {'success': false, 'message': 'Kesalahan tak terduga: $e'};
     }
   }
 

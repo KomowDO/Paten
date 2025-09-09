@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:paten/screen/thl_user_list_screen.dart'; // Import yang benar
-// import 'package:paten/screen/login.dart';
-import 'package:paten/services/api_service.dart';
+import 'package:paten/screen/login.dart';
+import 'package:paten/screen/user_list_screen.dart'; // Jika mau auto-login
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  ApiService().addInterceptors();
-  runApp(const MyApp());
+
+  // Cek apakah user sudah login sebelumnya
+  final prefs = await SharedPreferences.getInstance();
+  final savedUsername = prefs.getString('username'); // bisa juga cek token
+
+  runApp(MyApp(isLoggedIn: savedUsername != null));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool isLoggedIn;
+
+  const MyApp({super.key, required this.isLoggedIn});
 
   @override
   Widget build(BuildContext context) {
@@ -18,8 +24,6 @@ class MyApp extends StatelessWidget {
       title: 'Aplikasi PATEN',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFF062B96),
           foregroundColor: Colors.white,
@@ -47,8 +51,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      // Navigasi dimulai dari halaman THLUserListScreen
-      home: const THLUserListScreen(),
+      home: const LoginPage(),
     );
   }
 }

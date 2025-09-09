@@ -326,12 +326,18 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
                                     const SizedBox(height: 8),
                                     Text(
                                       'Kecamatan: ${user.namaKecamatan ?? 'N/A'}', // Menggunakan properti namaKecamatan
-                                      style: const TextStyle(fontSize: 14),
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
                                       'Kelurahan: ${user.namaKelurahan ?? 'N/A'}', // Menggunakan properti namaKelurahan
-                                      style: const TextStyle(fontSize: 14),
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ],
                                 ),
