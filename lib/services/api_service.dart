@@ -26,8 +26,7 @@ class ApiService {
       'https://script.google.com/macros/s/AKfycbzw5Cozyzk7Hbz9qAXPmwkCm28FeNH5OLy5_onHRn2ptYdUTeL4l-S-myJ9qlZzdPkq/exec';
 
   static const String jwtToken =
-      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1Njk3Mzc2Nn0.HJoHlSzUZjYD22ay9prxEemroPXuac1BTo8YfEgwaiY';
-
+      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1NzM4NTQ5NX0.07ZRDO2nL6Ag7YCfX9Z4RyFo7jMRzyEnsjiI-Q_FThI';
   ApiService() : _dio = Dio(), _publicDio = Dio() {
     _addAuthenticatedInterceptors(_dio);
     _addPublicInterceptors(_publicDio);
@@ -127,7 +126,7 @@ class ApiService {
   // Regular user list function (existing)
   Future<List<User>> getUsers({
     int page = 1,
-    int limit = 45,
+    int limit = 1000,
     required String kode_unor_pegawai,
     String? filter_kecamatan,
     String? filter_kelurahan,

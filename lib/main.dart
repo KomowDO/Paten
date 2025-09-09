@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:paten/screen/user_list_screen.dart'; // Import yang benar
-
-// Import ini tidak lagi dibutuhkan, tapi bisa disimpan jika Anda ingin kembali ke halaman login
+import 'package:paten/screen/thl_user_list_screen.dart'; // Import yang benar
 // import 'package:paten/screen/login.dart';
 import 'package:paten/services/api_service.dart';
 
@@ -50,7 +48,7 @@ class MyApp extends StatelessWidget {
         ),
       ),
       // Navigasi dimulai dari halaman THLUserListScreen
-      home: const UserListScreen(),
+      home: const THLUserListScreen(),
     );
   }
 }

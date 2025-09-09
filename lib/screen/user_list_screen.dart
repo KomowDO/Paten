@@ -230,8 +230,6 @@ class _UserListScreenState extends State<UserListScreen> {
       body: Column(
         children: [
           _buildCollapsibleFilter(),
-
-          // ... bagian kode lainnya ...
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(

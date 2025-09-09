@@ -317,7 +317,11 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
                                     const SizedBox(height: 8),
                                     Text(
                                       'NIP: ${user.nip ?? ''}', // Menggunakan properti nip dari UserTHL
-                                      style: TextStyle(color: Colors.grey[600]),
+                                      style: TextStyle(
+                                        color: Colors.grey[800],
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
