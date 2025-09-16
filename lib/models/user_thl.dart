@@ -1,14 +1,18 @@
+// file: lib/models/user_thl.dart
 import 'package:flutter/foundation.dart';
 
 class UserTHL {
   final String? id;
-  final String? nip; // Diperbaiki: Menggunakan 'nip'
+  final String? nip;
   final String? idPegawai;
   final String? kodeUnor;
   final String? kodeUnorKhusus;
-  final String? nama; // Diperbaiki: Menggunakan 'nama_user'
+  final String? nama;
   final String? statusKepegawaian;
-  final String status;
+
+  // Hapus 'final' di sini agar 'status' bisa diubah
+  String status;
+
   final String? namaKecamatan;
   final String? namaKelurahan;
   final String? createdAt;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:paten/screen/login.dart';
+// import 'package:paten/screen/login.dart';
+import 'package:paten/screen/thl_user_list_screen.dart';
 import 'package:paten/screen/user_list_screen.dart'; // Jika mau auto-login
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -51,7 +52,9 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const LoginPage(),
+      //home: const LoginPage(),
+      home: const THLUserListScreen(),
+      // home: const LoginPage(),
     );
   }
 }

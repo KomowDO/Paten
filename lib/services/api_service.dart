@@ -1,7 +1,10 @@
+// file: lib/services/api_service.dart
+
 import 'package:dio/dio.dart';
 import 'dart:convert';
-import 'package:paten/models/user.dart'; // Import model untuk user reguler
-import 'package:paten/models/user_thl.dart'; // Import model untuk user THL
+import 'package:paten/models/user.dart';
+import 'package:paten/models/user_thl.dart';
+import 'package:paten/models/user_pns.dart';
 
 class ApiService {
   final Dio _dio;
@@ -25,8 +28,14 @@ class ApiService {
   final String _addUserRtRwApiUrl =
       'https://script.google.com/macros/s/AKfycbzw5Cozyzk7Hbz9qAXPmwkCm28FeNH5OLy5_onHRn2ptYdUTeL4l-S-myJ9qlZzdPkq/exec';
 
+  final String _thlMainApiUrl =
+      'https://script.google.com/macros/s/AKfycbzOyGK5H3niwfgrzFG4gMpNaBDmG76XVv_t9ddivEcYw4QyF1t4SeXYwZ50grEf8k0H/exec';
+
+  final String _updateUserThlApiUrl =
+      'https://script.google.com/macros/s/AKfycbyUJplsEvsX4cA-b5Vw1a_vUQEieyv0Mim2BOnUWs-dDesQeWkfvKfsfobFgG6ooDMr/exec';
+
   static const String jwtToken =
-      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1NzQwMTE0OX0.z9YHtTDN2sw7cJatvzLEKwok7FpQ_dXRaBvX3GgmNwY';
+      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1ODAwMTg2N30.XULqM86xdvYFFeuR4TzrR6S6wh22NZgmvoaVrfS9jKo';
 
   ApiService() : _dio = Dio(), _publicDio = Dio() {
     _addAuthenticatedInterceptors(_dio);
@@ -89,7 +98,6 @@ class ApiService {
       ),
     );
 
-    // Tambahkan interceptor khusus untuk debugging
     dio.interceptors.add(
       InterceptorsWrapper(
         onResponse: (response, handler) {
@@ -135,7 +143,6 @@ class ApiService {
     }
   }
 
-  // Regular user list function (existing)
   Future<List<User>> getUsers({
     int page = 1,
     int limit = 45,
@@ -176,7 +183,6 @@ class ApiService {
         final Map<String, dynamic> jsonResponse = response.data;
         if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
           List<dynamic> data = jsonResponse['data'];
-          // Parsing dengan model User
           return data.map((json) => User.fromJson(json)).toList();
         } else {
           throw Exception(
@@ -202,7 +208,6 @@ class ApiService {
     }
   }
 
-  // --- Fungsi Baru: `getThlUsers` dengan Model `UserTHL` ---
   Future<List<UserTHL>> getThlUsers({
     int page = 1,
     int limit = 10,
@@ -217,10 +222,6 @@ class ApiService {
         'limit': limit,
         'kode_unor_pegawai': kode_unor_pegawai,
       };
-
-      if (keyword != null && keyword.isNotEmpty) {
-        queryParameters['keyword'] = keyword;
-      }
 
       final response = await _publicDio.get(
         _thlUserListApiUrl,
@@ -237,7 +238,6 @@ class ApiService {
 
         if (jsonResponse.containsKey('data') && jsonResponse['data'] is List) {
           List<dynamic> data = jsonResponse['data'];
-          // Parsing dengan model UserTHL
           return data.map((json) => UserTHL.fromJson(json)).toList();
         } else if (jsonResponse.containsKey('status') &&
             jsonResponse['status'] == false) {
@@ -275,23 +275,148 @@ class ApiService {
     }
   }
 
-  // Fungsi-fungsi lainnya tetap di sini
+  Future<UserPNS?> findUserByNik(String nik) async {
+    try {
+      final response = await _dio.get(
+        _thlMainApiUrl,
+        queryParameters: {
+          'endpoint': 'find_user_thl',
+          'jwt_token': jwtToken,
+          'nik': nik,
+        },
+      );
 
-  Future<Response> updateUserData(Map<String, dynamic> data) async {
+      if (response.statusCode == 200 && response.data != null) {
+        final Map<String, dynamic> jsonResponse = response.data;
+        if (jsonResponse['status'] == true && jsonResponse['data'] != null) {
+          return UserPNS.fromJson(jsonResponse['data']);
+        } else {
+          return null;
+        }
+      } else {
+        throw Exception(
+          'Gagal mencari NIK. Status Code: ${response.statusCode}',
+        );
+      }
+    } on DioException catch (e) {
+      throw Exception('Kesalahan jaringan: ${e.message}');
+    }
+  }
+
+  Future<void> saveNewTHLUser(Map<String, dynamic> userData) async {
+    try {
+      final response = await _dio.get(
+        _thlMainApiUrl,
+        queryParameters: {
+          'endpoint': 'add_user_thl',
+          'jwt_token': jwtToken,
+          'nip': userData['nip'],
+          'id_pegawai': userData['id_pegawai'],
+          'kode_unor': userData['kode_unor'],
+          'nama_user': userData['nama_user'],
+          'status_kepegawaian': userData['status_kepegawaian'],
+        },
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final Map<String, dynamic> jsonResponse = response.data;
+        if (jsonResponse['status'] != true) {
+          throw Exception(
+            jsonResponse['message'] ?? 'Gagal menyimpan data THL.',
+          );
+        }
+      } else {
+        throw Exception(
+          'Gagal menyimpan data THL. Status Code: ${response.statusCode}',
+        );
+      }
+    } on DioException catch (e) {
+      throw Exception('Kesalahan jaringan: ${e.message}');
+    }
+  }
+
+  Future<void> deleteThlUser(String id) async {
+    try {
+      final response = await _dio.get(
+        _mainApiUrl,
+        queryParameters: {
+          'endpoint': 'delete_user_thl',
+          'jwt_token': jwtToken,
+          'id': id,
+        },
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final Map<String, dynamic> jsonResponse = response.data;
+        if (jsonResponse['status'] != true) {
+          throw Exception(
+            jsonResponse['message'] ?? 'Gagal menghapus data THL.',
+          );
+        }
+      } else {
+        throw Exception(
+          'Gagal menghapus data THL. Status Code: ${response.statusCode}',
+        );
+      }
+    } on DioException catch (e) {
+      throw Exception('Kesalahan jaringan: ${e.message}');
+    }
+  }
+
+  Future<void> updateUserThl(String userId, String newStatus) async {
+    try {
+      final Map<String, dynamic> params = {
+        'endpoint': 'update_user_thl',
+        'id': userId,
+        'status': newStatus,
+        'jwt_token': jwtToken,
+      };
+
+      final response = await _dio.get(
+        _updateUserThlApiUrl,
+        queryParameters: params,
+        options: Options(
+          validateStatus: (status) => true,
+          followRedirects: true,
+          maxRedirects: 5,
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final Map<String, dynamic> jsonResponse = response.data;
+        if (jsonResponse['status'] != true) {
+          throw Exception(
+            jsonResponse['message'] ?? 'Gagal memperbarui status.',
+          );
+        }
+      } else {
+        throw Exception(
+          'Gagal memperbarui status. Status Code: ${response.statusCode}',
+        );
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final errorMsg =
+            e.response!.data['message'] ?? e.response!.statusMessage;
+        throw Exception('Gagal memperbarui status: $errorMsg');
+      } else {
+        throw Exception('Gagal memperbarui status: ${e.message}');
+      }
+    } catch (e) {
+      throw Exception('Error tidak terduga: ${e.toString()}');
+    }
+  }
+
+  Future<Map<String, dynamic>> updateUserData(Map<String, dynamic> data) async {
     print("Simulasi: Mengirim data ke API update: $data");
     await Future.delayed(const Duration(seconds: 1));
-    return Response(
-      requestOptions: RequestOptions(path: ''),
-      statusCode: 200,
-      data: {"message": "Simulasi update berhasil"},
-    );
+    return {"message": "Simulasi update berhasil"};
   }
 
   Future<String?> fetchBearerToken() async {
     return null;
   }
 
-  // FIXED LOGIN FUNCTION
   Future<Map<String, dynamic>> login(String username, String password) async {
     if (username.isEmpty || password.isEmpty) {
       return {
@@ -311,16 +436,10 @@ class ApiService {
           },
           followRedirects: true,
           maxRedirects: 5,
-          validateStatus: (status) => true, // Accept all status codes
+          validateStatus: (status) => true,
         ),
       );
 
-      print("🔍 Status code: ${response.statusCode}");
-      print("🔍 Full Response: ${response.data}");
-      print("🔍 Response Type: ${response.data.runtimeType}");
-      print("🔍 Content-Type: ${response.headers.value('content-type')}");
-
-      // Handle different status codes
       if (response.statusCode == 500) {
         return {
           'success': false,
@@ -329,7 +448,6 @@ class ApiService {
         };
       }
 
-      // Check if response is HTML error page
       if (response.headers.value('content-type')?.contains('text/html') ==
           true) {
         return {
@@ -342,7 +460,6 @@ class ApiService {
       if (response.statusCode == 200 && response.data != null) {
         Map<String, dynamic> responseData;
 
-        // Handle different response types
         if (response.data is Map<String, dynamic>) {
           responseData = response.data;
         } else if (response.data is String) {
@@ -361,14 +478,8 @@ class ApiService {
           };
         }
 
-        // Log detailed response structure
-        print("🔍 Parsed Response: $responseData");
-        print("🔍 Response Keys: ${responseData.keys.toList()}");
-
-        // Check if login is successful
         bool isLoginSuccessful = false;
 
-        // Check various success indicators
         if (responseData['success'] == true ||
             responseData['status'] == true ||
             responseData['message']?.toString().toLowerCase().contains(
@@ -379,29 +490,17 @@ class ApiService {
         }
 
         if (isLoginSuccessful) {
-          // Extract user data
           final userData = responseData['data'] ?? responseData;
 
-          print("🔍 User Data: $userData");
-
-          // Extract access token from response
           String? accessToken;
 
-          // Look for access_token in the main response
           if (responseData['access_token'] != null) {
             accessToken = responseData['access_token'].toString();
-          }
-          // Also check in userData
-          else if (userData != null && userData['access_token'] != null) {
+          } else if (userData != null && userData['access_token'] != null) {
             accessToken = userData['access_token'].toString();
-          }
-          // Fallback to static JWT token if no access token found
-          else {
+          } else {
             accessToken = jwtToken;
           }
-
-          print("🔍 Access Token Found: ${accessToken != null ? 'YES' : 'NO'}");
-          print("🔍 Token: ${accessToken?.substring(0, 50)}...");
 
           return {
             'success': true,
@@ -431,16 +530,18 @@ class ApiService {
         'message': 'Login gagal. Status Code: ${response.statusCode}',
       };
     } on DioException catch (e) {
-      print("❌ DioException: ${e.type}");
-      print("❌ Error message: ${e.message}");
       if (e.response != null) {
-        print("❌ Response status: ${e.response!.statusCode}");
-        print("❌ Response data: ${e.response!.data}");
+        return {
+          'success': false,
+          'message': 'Kesalahan jaringan: ${e.response!.statusMessage}',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': 'Kesalahan jaringan: ${e.message}',
+        };
       }
-
-      return {'success': false, 'message': 'Kesalahan jaringan: ${e.message}'};
     } catch (e) {
-      print("❌ Unexpected error: $e");
       return {'success': false, 'message': 'Kesalahan tak terduga: $e'};
     }
   }
