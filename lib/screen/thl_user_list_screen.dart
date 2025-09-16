@@ -1,3 +1,5 @@
+// file: lib/thl_user_list_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:paten/services/api_service.dart';
 import 'package:paten/models/user_thl.dart';
@@ -62,7 +64,6 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
 
     try {
       final fetchedUsers = await _apiService.getThlUsers(
-        // kode_unor_pegawai: '07.13.09.03',
         kode_unor_pegawai: '07.01',
         page: _page,
         limit: _limit,
@@ -290,7 +291,8 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
+        // Gunakan dialogContext di sini
         return AlertDialog(
           title: const Text('Hapus Data'),
           content: SingleChildScrollView(
@@ -306,24 +308,33 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
             TextButton(
               child: const Text('Batal'),
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(dialogContext).pop();
               },
             ),
             TextButton(
               style: TextButton.styleFrom(foregroundColor: Colors.red),
               child: const Text('Hapus'),
               onPressed: () async {
-                Navigator.of(context).pop();
                 try {
+                  // Perbaiki: Panggil API dan tangani hasilnya sebelum pop
                   await _apiService.deleteThlUser(user.id!);
+
+                  // Pop dialog setelah API berhasil
+                  Navigator.of(dialogContext).pop();
+
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Data berhasil dihapus.')),
                     );
+
+                    // Refresh data setelah penghapusan
                     _fetchUsers(isInitialLoad: true);
                   }
                 } catch (e) {
                   if (mounted) {
+                    // Pop dialog jika API gagal
+                    Navigator.of(dialogContext).pop();
+
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Gagal menghapus data: ${e.toString()}'),
@@ -451,7 +462,6 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
                           onChanged: (bool value) async {
                             final String currentStatus = user.status;
                             try {
-                              // PERBAIKAN: Mengirim status saat ini (user.status), bukan status yang baru
                               await _apiService.updateUserThl(
                                 user.id!,
                                 currentStatus,
@@ -459,7 +469,6 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
 
                               if (mounted) {
                                 setState(() {
-                                  // Memperbarui UI dengan status yang berlawanan setelah API berhasil
                                   _users[index].status = value ? '1' : '0';
                                 });
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -470,7 +479,6 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
                               }
                             } catch (e) {
                               if (mounted) {
-                                // Jika API gagal, kembalikan tampilan Switch ke posisi semula
                                 setState(() {
                                   _users[index].status = isActive ? '1' : '0';
                                 });

@@ -34,6 +34,9 @@ class ApiService {
   final String _updateUserThlApiUrl =
       'https://script.google.com/macros/s/AKfycbyUJplsEvsX4cA-b5Vw1a_vUQEieyv0Mim2BOnUWs-dDesQeWkfvKfsfobFgG6ooDMr/exec';
 
+  final String _deleteThlUserApiUrl =
+      'https://script.google.com/macros/s/AKfycbyUJplsEvsX4cA-b5Vw1a_vUQEieyv0Mim2BOnUWs-dDesQeWkfvKfsfobFgG6ooDMr/exec';
+
   static const String jwtToken =
       'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1ODAwMTg2N30.XULqM86xdvYFFeuR4TzrR6S6wh22NZgmvoaVrfS9jKo';
 
@@ -335,33 +338,33 @@ class ApiService {
     }
   }
 
-  Future<void> deleteThlUser(String id) async {
-    try {
-      final response = await _dio.get(
-        _mainApiUrl,
-        queryParameters: {
-          'endpoint': 'delete_user_thl',
-          'jwt_token': jwtToken,
-          'id': id,
-        },
-      );
+  // Future<void> deleteThlUser(String id) async {
+  //   try {
+  //     final response = await _dio.get(
+  //       _mainApiUrl,
+  //       queryParameters: {
+  //         'endpoint': 'delete_user_thl',
+  //         'jwt_token': jwtToken,
+  //         'id': id,
+  //       },
+  //     );
 
-      if (response.statusCode == 200 && response.data != null) {
-        final Map<String, dynamic> jsonResponse = response.data;
-        if (jsonResponse['status'] != true) {
-          throw Exception(
-            jsonResponse['message'] ?? 'Gagal menghapus data THL.',
-          );
-        }
-      } else {
-        throw Exception(
-          'Gagal menghapus data THL. Status Code: ${response.statusCode}',
-        );
-      }
-    } on DioException catch (e) {
-      throw Exception('Kesalahan jaringan: ${e.message}');
-    }
-  }
+  //     if (response.statusCode == 200 && response.data != null) {
+  //       final Map<String, dynamic> jsonResponse = response.data;
+  //       if (jsonResponse['status'] != true) {
+  //         throw Exception(
+  //           jsonResponse['message'] ?? 'Gagal menghapus data THL.',
+  //         );
+  //       }
+  //     } else {
+  //       throw Exception(
+  //         'Gagal menghapus data THL. Status Code: ${response.statusCode}',
+  //       );
+  //     }
+  //   } on DioException catch (e) {
+  //     throw Exception('Kesalahan jaringan: ${e.message}');
+  //   }
+  // }
 
   Future<void> updateUserThl(String userId, String newStatus) async {
     try {
@@ -751,6 +754,48 @@ class ApiService {
       return {'success': false, 'message': message};
     } catch (e) {
       return {'success': false, 'message': 'An unexpected error occurred: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> deleteThlUser(String id) async {
+    try {
+      final response = await _dio.get(
+        _deleteThlUserApiUrl,
+        queryParameters: {
+          'endpoint': 'delete_user_thl',
+          'jwt_token': jwtToken,
+          'id': id,
+        },
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final Map<String, dynamic> jsonResponse = response.data;
+        if (jsonResponse['status'] == true) {
+          return {
+            'success': true,
+            'message': jsonResponse['message'] ?? 'Data THL berhasil dihapus.',
+          };
+        } else {
+          return {
+            'success': false,
+            'message': jsonResponse['message'] ?? 'Gagal menghapus data THL.',
+          };
+        }
+      } else {
+        return {
+          'success': false,
+          'message':
+              'Gagal menghapus data THL. Status Code: ${response.statusCode}',
+        };
+      }
+    } on DioException catch (e) {
+      String message = 'Kesalahan jaringan: ${e.message}';
+      if (e.response != null && e.response!.data != null) {
+        message = e.response!.data['message'] ?? message;
+      }
+      return {'success': false, 'message': message};
+    } catch (e) {
+      return {'success': false, 'message': 'Terjadi kesalahan tak terduga: $e'};
     }
   }
 }

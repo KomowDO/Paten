@@ -37,6 +37,7 @@ dependencies:
   intl: ^0.18.1
   dio: ^5.4.2
   shared_preferences: ^2.2.00
+provider: ^6.0.0
 
 dev_dependencies:
   flutter_test:
