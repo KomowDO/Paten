@@ -3,8 +3,9 @@ import 'package:paten/models/user.dart';
 import 'package:paten/screen/add_user_screen.dart';
 import 'package:paten/screen/edit_user_screen.dart';
 import 'package:paten/widgets/user_card.dart';
-import 'package:paten/services/api_service.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:paten/providers/user_list_provider.dart';
 
 class UserListScreen extends StatefulWidget {
   const UserListScreen({super.key});
@@ -14,30 +15,16 @@ class UserListScreen extends StatefulWidget {
 }
 
 class _UserListScreenState extends State<UserListScreen> {
-  final ApiService _apiService = ApiService();
   final ScrollController _scrollController = ScrollController();
-
   bool _isFilterVisible = false;
 
-  String? _selectedKecamatan;
-  String? _selectedKelurahan;
   final TextEditingController _rwController = TextEditingController();
   final TextEditingController _rtController = TextEditingController();
   final TextEditingController _keywordController = TextEditingController();
 
-  final String _kodeUnorPegawai = '07.13.09.03';
-
-  List<User> _users = [];
-  bool _isLoading = true;
-  bool _isFetchingMore = false;
-  int _currentPage = 1;
-  final int _pageSize = 10;
-  bool _hasMoreData = true;
-
   @override
   void initState() {
     super.initState();
-    _fetchUsers(isInitialLoad: true);
     _scrollController.addListener(_onScroll);
   }
 
@@ -51,55 +38,12 @@ class _UserListScreenState extends State<UserListScreen> {
   }
 
   void _onScroll() {
+    final provider = Provider.of<UserListProvider>(context, listen: false);
     if (_scrollController.position.pixels ==
             _scrollController.position.maxScrollExtent &&
-        !_isFetchingMore &&
-        _hasMoreData) {
-      _fetchUsers(isInitialLoad: false);
-    }
-  }
-
-  Future<void> _fetchUsers({required bool isInitialLoad}) async {
-    if (_isFetchingMore) return;
-
-    setState(() {
-      if (isInitialLoad) {
-        _isLoading = true;
-        _users = [];
-        _currentPage = 1;
-      } else {
-        _isFetchingMore = true;
-      }
-    });
-
-    try {
-      final fetchedUsers = await _apiService.getUsers(
-        page: _currentPage,
-        limit: _pageSize,
-        kode_unor_pegawai: _kodeUnorPegawai,
-        filter_kecamatan: _selectedKecamatan,
-        filter_kelurahan: _selectedKelurahan,
-        filter_no_rw: _rwController.text,
-        filter_no_rt: _rtController.text,
-        keyword: _keywordController.text,
-      );
-
-      setState(() {
-        _users.addAll(fetchedUsers);
-        _currentPage++;
-        _hasMoreData = fetchedUsers.length == _pageSize;
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memuat data: ${e.toString()}')),
-        );
-      }
-    } finally {
-      setState(() {
-        _isLoading = false;
-        _isFetchingMore = false;
-      });
+        !provider.isFetchingMore &&
+        provider.hasMoreData) {
+      provider.fetchUsers(isInitialLoad: false);
     }
   }
 
@@ -108,8 +52,11 @@ class _UserListScreenState extends State<UserListScreen> {
       context,
       MaterialPageRoute(builder: (context) => const AddUserScreen()),
     );
-    if (shouldRefresh == true) {
-      _fetchUsers(isInitialLoad: true);
+    if (mounted && shouldRefresh == true) {
+      Provider.of<UserListProvider>(
+        context,
+        listen: false,
+      ).fetchUsers(isInitialLoad: true);
     }
   }
 
@@ -118,12 +65,16 @@ class _UserListScreenState extends State<UserListScreen> {
       context,
       MaterialPageRoute(builder: (context) => EditUserScreen(user: user)),
     );
-    if (shouldRefresh == true) {
-      _fetchUsers(isInitialLoad: true);
+    if (mounted && shouldRefresh == true) {
+      Provider.of<UserListProvider>(
+        context,
+        listen: false,
+      ).fetchUsers(isInitialLoad: true);
     }
   }
 
   Future<void> _onResetPassword(User user) async {
+    final provider = Provider.of<UserListProvider>(context, listen: false);
     final bool? shouldReset = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -151,11 +102,7 @@ class _UserListScreenState extends State<UserListScreen> {
     );
 
     if (shouldReset == true) {
-      final result = await _apiService.resetPassword(
-        ApiService.jwtToken,
-        user.nik ?? '',
-      );
-
+      final result = await provider.resetUserPassword(user);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -170,6 +117,7 @@ class _UserListScreenState extends State<UserListScreen> {
   }
 
   Future<void> _onDeleteUser(User user) async {
+    final provider = Provider.of<UserListProvider>(context, listen: false);
     final isConfirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -190,12 +138,8 @@ class _UserListScreenState extends State<UserListScreen> {
       ),
     );
 
-    if (isConfirmed == true) {
-      final result = await _apiService.deleteUser(
-        ApiService.jwtToken,
-        user.nik ?? '',
-      );
-
+    if (mounted && isConfirmed == true) {
+      final result = await provider.deleteUser(user);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -206,23 +150,24 @@ class _UserListScreenState extends State<UserListScreen> {
           ),
         );
       }
-      _fetchUsers(isInitialLoad: true);
     }
   }
 
   void _resetFilters() {
+    final provider = Provider.of<UserListProvider>(context, listen: false);
     setState(() {
-      _selectedKecamatan = null;
-      _selectedKelurahan = null;
+      _keywordController.clear();
       _rwController.clear();
       _rtController.clear();
-      _keywordController.clear();
+      _isFilterVisible = false;
     });
-    _fetchUsers(isInitialLoad: true);
+    provider.resetFilters();
   }
 
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<UserListProvider>(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Daftar Pengguna RT/RW'),
@@ -230,7 +175,7 @@ class _UserListScreenState extends State<UserListScreen> {
       ),
       body: Column(
         children: [
-          _buildCollapsibleFilter(),
+          _buildCollapsibleFilter(provider),
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(
@@ -244,41 +189,41 @@ class _UserListScreenState extends State<UserListScreen> {
                     backgroundColor: const Color(0xFF03038E),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 48, // Lebih lebar
-                      vertical: 12, // Tinggi yang sesuai
+                      horizontal: 48,
+                      vertical: 12,
                     ),
-                    minimumSize: const Size(160, 48), // Ukuran minimum
+                    minimumSize: const Size(160, 48),
                   ),
                 ),
-                // Mengubah TextButton menjadi ElevatedButton untuk tombol Refresh
                 ElevatedButton.icon(
-                  onPressed: () => _fetchUsers(isInitialLoad: true),
+                  onPressed: () => provider.fetchUsers(isInitialLoad: true),
                   icon: const Icon(Icons.refresh),
                   label: const Text('Refresh Data'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blueGrey,
                     foregroundColor: Colors.white,
-                    // Penyesuaian padding untuk tombol "Refresh"
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 16, // Lebih kecil dari Tambah Data
-                      vertical: 12, // Tinggi yang sama
+                      horizontal: 16,
+                      vertical: 12,
                     ),
-                    minimumSize: const Size(120, 48), // Ukuran minimum
+                    minimumSize: const Size(120, 48),
                   ),
                 ),
               ],
             ),
           ),
           Expanded(
-            child: _isLoading
+            child: provider.isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : _users.isEmpty
+                : provider.users.isEmpty
                 ? const Center(child: Text('Tidak ada data pengguna.'))
                 : ListView.builder(
                     controller: _scrollController,
-                    itemCount: _users.length + (_isFetchingMore ? 1 : 0),
+                    itemCount:
+                        provider.users.length +
+                        (provider.isFetchingMore ? 1 : 0),
                     itemBuilder: (context, index) {
-                      if (index == _users.length) {
+                      if (index == provider.users.length) {
                         return const Center(
                           child: Padding(
                             padding: EdgeInsets.all(16.0),
@@ -286,7 +231,7 @@ class _UserListScreenState extends State<UserListScreen> {
                           ),
                         );
                       }
-                      final user = _users[index];
+                      final user = provider.users[index];
                       return UserCard(
                         user: user,
                         onEdit: _onEditUser,
@@ -301,7 +246,7 @@ class _UserListScreenState extends State<UserListScreen> {
     );
   }
 
-  Widget _buildCollapsibleFilter() {
+  Widget _buildCollapsibleFilter(UserListProvider provider) {
     return Container(
       color: Colors.grey[200],
       child: Column(
@@ -339,7 +284,7 @@ class _UserListScreenState extends State<UserListScreen> {
             child: AnimatedSize(
               duration: const Duration(milliseconds: 200),
               child: _isFilterVisible
-                  ? _buildFilterInputs()
+                  ? _buildFilterInputs(provider)
                   : const SizedBox.shrink(),
             ),
           ),
@@ -348,7 +293,7 @@ class _UserListScreenState extends State<UserListScreen> {
     );
   }
 
-  Widget _buildFilterInputs() {
+  Widget _buildFilterInputs(UserListProvider provider) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
       child: Column(
@@ -362,32 +307,31 @@ class _UserListScreenState extends State<UserListScreen> {
               suffixIcon: Icon(Icons.search),
             ),
             onSubmitted: (value) {
-              _fetchUsers(isInitialLoad: true);
+              provider.updateFilters(keyword: value);
+              provider.fetchUsers(isInitialLoad: true);
             },
           ),
           const SizedBox(height: 8),
           _buildFilterDropdown(
             label: 'Kecamatan',
             items: const ['PINANG', 'KECAMATAN LAIN'],
-            value: _selectedKecamatan,
+            value: provider.selectedKecamatan,
             onChanged: (String? newValue) {
-              setState(() {
-                _selectedKecamatan = newValue;
-                _selectedKelurahan = null;
-              });
+              provider.updateFilters(kecamatan: newValue, kelurahan: null);
+              setState(() {}); // Update UI for the dropdown
             },
           ),
           const SizedBox(height: 8),
           _buildFilterDropdown(
             label: 'Kelurahan',
             items: const ['NEROKTOG', 'KELURAHAN LAIN'],
-            value: _selectedKelurahan,
+            value: provider.selectedKelurahan,
             onChanged: (String? newValue) {
-              setState(() {
-                _selectedKelurahan = newValue;
-              });
+              provider.updateFilters(kelurahan: newValue);
+              setState(() {}); // Update UI for the dropdown
             },
           ),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
@@ -403,6 +347,7 @@ class _UserListScreenState extends State<UserListScreen> {
                   ),
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   keyboardType: TextInputType.number,
+                  onChanged: (value) => provider.updateFilters(rw: value),
                 ),
               ),
               const SizedBox(width: 8),
@@ -419,6 +364,7 @@ class _UserListScreenState extends State<UserListScreen> {
                   ),
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   keyboardType: TextInputType.number,
+                  onChanged: (value) => provider.updateFilters(rt: value),
                 ),
               ),
             ],
@@ -428,7 +374,7 @@ class _UserListScreenState extends State<UserListScreen> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               ElevatedButton(
-                onPressed: () => _fetchUsers(isInitialLoad: true),
+                onPressed: () => provider.fetchUsers(isInitialLoad: true),
                 child: const Text('Terapkan Filter'),
               ),
               const SizedBox(width: 8),

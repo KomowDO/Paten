@@ -1,5 +1,3 @@
-// Lokasi: lib/screens/add_user_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -11,7 +9,7 @@ class AddUserScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => UserFormProvider(),
+      create: (context) => AddUserProvider(),
       child: Scaffold(
         appBar: AppBar(
           leading: IconButton(
@@ -22,7 +20,7 @@ class AddUserScreen extends StatelessWidget {
           ),
           title: const Text('Tambah Pengguna RT/RW'),
         ),
-        body: Consumer<UserFormProvider>(
+        body: Consumer<AddUserProvider>(
           builder: (context, provider, child) {
             return _buildForm(context, provider);
           },
@@ -31,7 +29,7 @@ class AddUserScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildForm(BuildContext context, UserFormProvider provider) {
+  Widget _buildForm(BuildContext context, AddUserProvider provider) {
     final _formKey = GlobalKey<FormState>();
 
     return SafeArea(

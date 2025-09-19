@@ -1,5 +1,3 @@
-// Lokasi: lib/providers/user_form_provider.dart
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:paten/services/api_service.dart';
@@ -7,7 +5,7 @@ import 'package:flutter/foundation.dart';
 
 enum DomisiliStatus { dalamKota, luarKota }
 
-class UserFormProvider with ChangeNotifier {
+class AddUserProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
 
   final TextEditingController nikController = TextEditingController();
@@ -37,7 +35,7 @@ class UserFormProvider with ChangeNotifier {
   List<String> get jabatanOptions => _jabatanOptions;
   String? get selectedNamaJabatan => _selectedNamaJabatan;
 
-  UserFormProvider() {
+  AddUserProvider() {
     _fetchJabatanData();
   }
 
@@ -217,9 +215,6 @@ class UserFormProvider with ChangeNotifier {
         jenis_jabatan: _jenisJabatanValue!,
       );
 
-      // --- PERBAIKAN DI SINI ---
-      // Pastikan hasil dari API mengembalikan 'success: true'
-      // Logika Anda di ApiService harus mengembalikan 'success: true' jika berhasil.
       if (result['status'] == true || result['success'] == true) {
         return {
           'success': true,
@@ -231,7 +226,6 @@ class UserFormProvider with ChangeNotifier {
           'message': result['message'] ?? 'Gagal menyimpan data',
         };
       }
-      // --- END PERBAIKAN ---
     } catch (e) {
       return {'success': false, 'message': 'Terjadi kesalahan: $e'};
     } finally {

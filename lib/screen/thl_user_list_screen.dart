@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:paten/services/api_service.dart';
+import 'package:provider/provider.dart';
+import 'package:paten/providers/thl_list_provider.dart';
 import 'package:paten/models/user_thl.dart';
 import 'package:paten/models/user_pns.dart';
+import 'package:paten/services/api_service.dart';
 
 class THLUserListScreen extends StatefulWidget {
   const THLUserListScreen({super.key});
@@ -11,21 +13,13 @@ class THLUserListScreen extends StatefulWidget {
 }
 
 class _THLUserListScreenState extends State<THLUserListScreen> {
-  final ApiService _apiService = ApiService();
-  final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
-
-  List<UserTHL> _allUsers = [];
-  List<UserTHL> _users = [];
-  bool _isLoading = true;
-  bool _isFetchingMore = false;
-  int _page = 1;
-  static const int _limit = 10;
+  final ScrollController _scrollController = ScrollController();
+  final ApiService _apiService = ApiService(); // Still needed for search dialog
 
   @override
   void initState() {
     super.initState();
-    _fetchUsers(isInitialLoad: true);
     _scrollController.addListener(_onScroll);
   }
 
@@ -38,71 +32,10 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
 
   void _onScroll() {
     if (_scrollController.position.pixels ==
-            _scrollController.position.maxScrollExtent &&
-        !_isFetchingMore) {
-      _fetchUsers(isInitialLoad: false);
+        _scrollController.position.maxScrollExtent) {
+      final provider = Provider.of<THLUserProvider>(context, listen: false);
+      provider.fetchUsers(isInitialLoad: false);
     }
-  }
-
-  Future<void> _fetchUsers({required bool isInitialLoad}) async {
-    if (_isFetchingMore && !isInitialLoad) return;
-
-    if (isInitialLoad) {
-      setState(() {
-        _isLoading = true;
-        _page = 1;
-        _allUsers.clear();
-        _users.clear();
-      });
-    } else {
-      setState(() {
-        _isFetchingMore = true;
-      });
-    }
-
-    try {
-      final fetchedUsers = await _apiService.getThlUsers(
-        kode_unor_pegawai: '07.01',
-        page: _page,
-        limit: _limit,
-      );
-
-      setState(() {
-        _allUsers.addAll(fetchedUsers);
-        _filterUsers(_searchController.text);
-        if (fetchedUsers.isNotEmpty) {
-          _page++;
-        }
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memuat data: ${e.toString()}')),
-        );
-      }
-    } finally {
-      setState(() {
-        _isLoading = false;
-        _isFetchingMore = false;
-      });
-    }
-  }
-
-  void _filterUsers(String query) {
-    List<UserTHL> results = [];
-    if (query.isEmpty) {
-      results = _allUsers;
-    } else {
-      results = _allUsers.where((user) {
-        final namaLower = user.nama?.toLowerCase() ?? '';
-        final nipLower = user.nip?.toLowerCase() ?? '';
-        final queryLower = query.toLowerCase();
-        return namaLower.contains(queryLower) || nipLower.contains(queryLower);
-      }).toList();
-    }
-    setState(() {
-      _users = results;
-    });
   }
 
   void _showAddDataDialog() {
@@ -118,9 +51,11 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
           builder: (context, setStateSB) {
             void handleSearch() async {
               if (nikController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('NIK tidak boleh kosong.')),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('NIK tidak boleh kosong.')),
+                  );
+                }
                 return;
               }
 
@@ -140,59 +75,65 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
                     foundUser = user;
                     dataFound = true;
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Data tidak ditemukan.')),
-                    );
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Data tidak ditemukan.')),
+                      );
+                    }
                   }
                 });
               } catch (e) {
                 setStateSB(() {
                   isSearching = false;
                 });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error: ${e.toString()}')),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: ${e.toString()}')),
+                  );
+                }
               }
             }
 
             void handleSave() async {
               if (foundUser == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Mohon cari data terlebih dahulu.'),
-                  ),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Mohon cari data terlebih dahulu.'),
+                    ),
+                  );
+                }
                 return;
               }
 
-              final String nip = foundUser!.nik;
-              final String namaUser = foundUser!.nama ?? '';
-              final String idPegawai = '71009';
-              final String kodeUnor = '07.01';
-              final String statusKepegawaian = 'thl';
+              final provider = Provider.of<THLUserProvider>(
+                context,
+                listen: false,
+              );
+              final userData = {
+                'nip': foundUser!.nik,
+                'nama_user': foundUser!.nama ?? '',
+                'id_pegawai': '71009',
+                'kode_unor': '07.01',
+                'status_kepegawaian': 'thl',
+              };
 
               try {
-                await _apiService.saveNewTHLUser({
-                  'nip': nip,
-                  'nama_user': namaUser,
-                  'id_pegawai': idPegawai,
-                  'kode_unor': kodeUnor,
-                  'status_kepegawaian': statusKepegawaian,
-                });
-
+                await provider.saveNewUser(userData);
                 if (mounted) {
                   Navigator.of(context).pop();
-                  _fetchUsers(isInitialLoad: true);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Data berhasil disimpan!')),
                   );
                 }
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Gagal menyimpan data: ${e.toString()}'),
-                  ),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Gagal menyimpan data: ${e.toString()}'),
+                    ),
+                  );
+                }
               }
             }
 
@@ -286,11 +227,11 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
   }
 
   Future<void> _showDeleteConfirmationDialog(UserTHL user) async {
+    final provider = Provider.of<THLUserProvider>(context, listen: false);
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext dialogContext) {
-        // Gunakan dialogContext di sini
         return AlertDialog(
           title: const Text('Hapus Data'),
           content: SingleChildScrollView(
@@ -314,25 +255,16 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
               child: const Text('Hapus'),
               onPressed: () async {
                 try {
-                  // Perbaiki: Panggil API dan tangani hasilnya sebelum pop
-                  await _apiService.deleteThlUser(user.id!);
-
-                  // Pop dialog setelah API berhasil
-                  Navigator.of(dialogContext).pop();
-
+                  await provider.deleteUser(user.id!);
                   if (mounted) {
+                    Navigator.of(dialogContext).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Data berhasil dihapus.')),
                     );
-
-                    // Refresh data setelah penghapusan
-                    _fetchUsers(isInitialLoad: true);
                   }
                 } catch (e) {
                   if (mounted) {
-                    // Pop dialog jika API gagal
                     Navigator.of(dialogContext).pop();
-
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Gagal menghapus data: ${e.toString()}'),
@@ -374,6 +306,7 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
 
   Widget _buildUserCard(UserTHL user, int index) {
     final bool isActive = user.status == '1';
+    final provider = Provider.of<THLUserProvider>(context, listen: false);
     return Card(
       margin: const EdgeInsets.only(bottom: 8.0),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
@@ -460,15 +393,11 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
                           onChanged: (bool value) async {
                             final String currentStatus = user.status;
                             try {
-                              await _apiService.updateUserThl(
+                              await provider.updateUserStatus(
                                 user.id!,
                                 currentStatus,
                               );
-
                               if (mounted) {
-                                setState(() {
-                                  _users[index].status = value ? '1' : '0';
-                                });
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text('Status berhasil diubah.'),
@@ -477,9 +406,6 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
                               }
                             } catch (e) {
                               if (mounted) {
-                                setState(() {
-                                  _users[index].status = isActive ? '1' : '0';
-                                });
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
@@ -512,14 +438,14 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Daftar Pengguna THL'),
+        automaticallyImplyLeading: false,
         actions: [
-          IconButton(
-            onPressed: () {
-              _searchController.clear();
-              _filterUsers('');
-            },
-            icon: const Icon(Icons.clear),
-          ),
+          // IconButton(
+          //   onPressed: () {
+          //     // ... (kode lainnya)
+          //   },
+          //   icon: const Icon(Icons.clear),
+          // ),
         ],
       ),
       body: SafeArea(
@@ -543,7 +469,14 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton.icon(
-                    onPressed: () => _fetchUsers(isInitialLoad: true),
+                    onPressed: () {
+                      final provider = Provider.of<THLUserProvider>(
+                        context,
+                        listen: false,
+                      );
+                      _searchController.clear();
+                      provider.fetchUsers(isInitialLoad: true);
+                    },
                     icon: const Icon(Icons.refresh),
                     label: const Text('Refresh'),
                     style: ElevatedButton.styleFrom(
@@ -566,40 +499,54 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
                   filled: true,
                   fillColor: Colors.grey[200],
                 ),
-                onChanged: _filterUsers,
+                onChanged: (query) {
+                  final provider = Provider.of<THLUserProvider>(
+                    context,
+                    listen: false,
+                  );
+                  provider.filterUsers(query);
+                },
               ),
               const SizedBox(height: 16),
-              _isLoading
-                  ? const Expanded(
+              Consumer<THLUserProvider>(
+                builder: (context, provider, child) {
+                  if (provider.isLoading) {
+                    return const Expanded(
                       child: Center(child: CircularProgressIndicator()),
-                    )
-                  : _users.isEmpty
-                  ? const Expanded(
+                    );
+                  }
+                  if (provider.users.isEmpty) {
+                    return const Expanded(
                       child: Center(
                         child: Text(
                           'Tidak ada data pengguna THL.',
                           style: TextStyle(fontSize: 16, color: Colors.black54),
                         ),
                       ),
-                    )
-                  : Expanded(
-                      child: ListView.builder(
-                        controller: _scrollController,
-                        itemCount: _users.length + (_isFetchingMore ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (index == _users.length) {
-                            return const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: CircularProgressIndicator(),
-                              ),
-                            );
-                          }
-                          final user = _users[index];
-                          return _buildUserCard(user, index);
-                        },
-                      ),
+                    );
+                  }
+                  return Expanded(
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      itemCount:
+                          provider.users.length +
+                          (provider.isFetchingMore ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index == provider.users.length) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        }
+                        final user = provider.users[index];
+                        return _buildUserCard(user, index);
+                      },
                     ),
+                  );
+                },
+              ),
             ],
           ),
         ),
