@@ -4,6 +4,7 @@ import 'package:paten/screen/add_user_screen.dart';
 import 'package:paten/screen/edit_user_screen.dart';
 import 'package:paten/widgets/user_card.dart';
 import 'package:paten/services/api_service.dart';
+import 'package:flutter/services.dart';
 
 class UserListScreen extends StatefulWidget {
   const UserListScreen({super.key});
@@ -400,6 +401,7 @@ class _UserListScreenState extends State<UserListScreen> {
                       vertical: 6,
                     ),
                   ),
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   keyboardType: TextInputType.number,
                 ),
               ),
@@ -415,6 +417,7 @@ class _UserListScreenState extends State<UserListScreen> {
                       vertical: 6,
                     ),
                   ),
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   keyboardType: TextInputType.number,
                 ),
               ),

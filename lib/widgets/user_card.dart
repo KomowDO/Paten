@@ -84,7 +84,7 @@ class _UserCardState extends State<UserCard> {
                         Text(
                           widget.user.nama ?? '-',
                           style: const TextStyle(
-                            fontSize: 16,
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -93,13 +93,14 @@ class _UserCardState extends State<UserCard> {
                             Text(
                               widget.user.nama_jabatan ?? '-',
                               style: TextStyle(
-                                color: Colors.grey[800],
+                                // color: Colors.grey[800],
                                 fontSize: 14,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              ' ${widget.user.rt ?? ''}',
+                              '| RT ${widget.user.rt ?? '-'}',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey[800],
@@ -107,7 +108,7 @@ class _UserCardState extends State<UserCard> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '/ RW ${widget.user.rw ?? '-'}',
+                              '| RW  ${widget.user.rw ?? '-'}',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey[800],

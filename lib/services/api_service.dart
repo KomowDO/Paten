@@ -1,5 +1,3 @@
-// file: lib/services/api_service.dart
-
 import 'package:dio/dio.dart';
 import 'dart:convert';
 import 'package:paten/models/user.dart';
@@ -37,8 +35,11 @@ class ApiService {
   final String _deleteThlUserApiUrl =
       'https://script.google.com/macros/s/AKfycbyUJplsEvsX4cA-b5Vw1a_vUQEieyv0Mim2BOnUWs-dDesQeWkfvKfsfobFgG6ooDMr/exec';
 
+  final String _checkNikApiUrl =
+      'https://script.google.com/macros/s/AKfycbzTKCMvp25kFv_S64R6cBU_N-82xuGhobwG7u5tlY8gD8izo4ELfq7dQXbqOApOzouG/exec';
+
   static const String jwtToken =
-      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1ODAwMTg2N30.XULqM86xdvYFFeuR4TzrR6S6wh22NZgmvoaVrfS9jKo';
+      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1ODI2NDM4Mn0.lWzEHeWrrAyMQ_B1_RMMl2e1DpxdUu3P9NhMoLf6BBI';
 
   ApiService() : _dio = Dio(), _publicDio = Dio() {
     _addAuthenticatedInterceptors(_dio);
@@ -338,33 +339,56 @@ class ApiService {
     }
   }
 
-  // Future<void> deleteThlUser(String id) async {
-  //   try {
-  //     final response = await _dio.get(
-  //       _mainApiUrl,
-  //       queryParameters: {
-  //         'endpoint': 'delete_user_thl',
-  //         'jwt_token': jwtToken,
-  //         'id': id,
-  //       },
-  //     );
+  Future<Map<String, dynamic>> checkNik(String nik) async {
+    try {
+      final response = await _publicDio.get(
+        // Periksa apakah Anda menggunakan _publicDio atau _dio
+        _checkNikApiUrl,
+        queryParameters: {'endpoint': 'cek_nik', 'nik': nik},
+        options: Options(
+          validateStatus: (status) => true,
+          followRedirects: true,
+          maxRedirects: 5,
+        ),
+      );
 
-  //     if (response.statusCode == 200 && response.data != null) {
-  //       final Map<String, dynamic> jsonResponse = response.data;
-  //       if (jsonResponse['status'] != true) {
-  //         throw Exception(
-  //           jsonResponse['message'] ?? 'Gagal menghapus data THL.',
-  //         );
-  //       }
-  //     } else {
-  //       throw Exception(
-  //         'Gagal menghapus data THL. Status Code: ${response.statusCode}',
-  //       );
-  //     }
-  //   } on DioException catch (e) {
-  //     throw Exception('Kesalahan jaringan: ${e.message}');
-  //   }
-  // }
+      // Langsung periksa dan kembalikan respons yang benar
+      if (response.statusCode == 200 && response.data != null) {
+        final Map<String, dynamic> jsonResponse = response.data;
+
+        // Logika di sini harus sesuai dengan respons Postman
+        if (jsonResponse.containsKey('success') &&
+            jsonResponse['success'] == true) {
+          // Respons yang berhasil, mengembalikan data
+          return {
+            'success': true,
+            'message': jsonResponse['message'] ?? 'Data NIK ditemukan.',
+            'data': jsonResponse['data'],
+          };
+        } else {
+          // Respons gagal dari server (message tidak konsisten)
+          return {
+            'success': false,
+            'message': jsonResponse['message'] ?? 'Data tidak ditemukan.',
+          };
+        }
+      } else {
+        // Kesalahan pada status code
+        return {
+          'success': false,
+          'message': 'Gagal memeriksa NIK. Status Code: ${response.statusCode}',
+        };
+      }
+    } on DioException catch (e) {
+      String message = 'Kesalahan jaringan: ${e.message}';
+      if (e.response != null && e.response!.data != null) {
+        message = e.response!.data['message'] ?? message;
+      }
+      return {'success': false, 'message': message};
+    } catch (e) {
+      return {'success': false, 'message': 'Terjadi kesalahan tak terduga: $e'};
+    }
+  }
 
   Future<void> updateUserThl(String userId, String newStatus) async {
     try {

@@ -1,5 +1,3 @@
-// file: lib/thl_user_list_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:paten/services/api_service.dart';
 import 'package:paten/models/user_thl.dart';
