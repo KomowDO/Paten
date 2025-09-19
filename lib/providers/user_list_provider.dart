@@ -64,7 +64,6 @@ class UserListProvider with ChangeNotifier {
       _hasMoreData = fetchedUsers.length == _pageSize;
     } catch (e) {
       debugPrint('Gagal memuat data: $e');
-      // Anda bisa menambahkan logika penanganan error lebih lanjut di sini
     } finally {
       _isLoading = false;
       _isFetchingMore = false;

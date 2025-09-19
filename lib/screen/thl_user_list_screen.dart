@@ -15,7 +15,7 @@ class THLUserListScreen extends StatefulWidget {
 class _THLUserListScreenState extends State<THLUserListScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final ApiService _apiService = ApiService(); // Still needed for search dialog
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
