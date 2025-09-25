@@ -374,6 +374,8 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildDetailRow('Nama', user.nama),
+                _buildDetailRow('NIP', user.nip),
                 _buildDetailRow('Kecamatan', user.namaKecamatan),
                 _buildDetailRow('Kelurahan', user.namaKelurahan),
                 _buildDetailRow('Status', user.status),
