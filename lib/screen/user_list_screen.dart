@@ -189,7 +189,7 @@ class _UserListScreenState extends State<UserListScreen> {
                     backgroundColor: const Color(0xFF03038E),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 48,
+                      horizontal: 42,
                       vertical: 12,
                     ),
                     minimumSize: const Size(160, 48),
@@ -203,7 +203,7 @@ class _UserListScreenState extends State<UserListScreen> {
                     backgroundColor: Colors.blueGrey,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
+                      horizontal: 12,
                       vertical: 12,
                     ),
                     minimumSize: const Size(120, 48),

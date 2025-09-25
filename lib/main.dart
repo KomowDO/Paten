@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:paten/screen/user_list_screen.dart';
+// import 'package:paten/screen/user_list_screen.dart';
 import 'package:provider/provider.dart'; // Import the provider package
 // import 'package:paten/screen/thl_user_list_screen.dart';
+import 'package:paten/screen/login.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 
@@ -71,7 +72,8 @@ class MyApp extends StatelessWidget {
           ),
         ),
         // home: const THLUserListScreen(),
-        home: const UserListScreen(),
+        // home: const UserListScreen(),
+        home: isLoggedIn ? const LoginPage() : const LoginPage(),
       ),
     );
   }
