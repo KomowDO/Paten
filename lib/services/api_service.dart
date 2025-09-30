@@ -38,8 +38,11 @@ class ApiService {
   final String _checkNikApiUrl =
       'https://script.google.com/macros/s/AKfycbzTKCMvp25kFv_S64R6cBU_N-82xuGhobwG7u5tlY8gD8izo4ELfq7dQXbqOApOzouG/exec';
 
+  final String _editUserRtRwApiUrl =
+      'https://script.google.com/macros/s/AKfycbzKcbXUsz6Uf6tj0sdqldyCxmpjR7py7NO2t1E2JpizbmIbgtszVD-94sp71AhUip-9/exec';
+
   static const String jwtToken =
-      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1ODc2NzA2MH0.QFB_-bNcHHalsmFj9p8eVDPzRnmDbND3I6ztNmutC7U';
+      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1OTI0MDA1Nn0.4TtUyiSZbIW9fMeYD87EC-KpZGh2teFR3Aw03iFQsKY';
 
   ApiService() : _dio = Dio(), _publicDio = Dio() {
     _addAuthenticatedInterceptors(_dio);
@@ -708,12 +711,15 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> updateUserRtRw({
+  Future<Map<String, dynamic>> editUserRtRw({
+    required String id, // <-- TAMBAHKAN PARAMETER INI
     required String nik,
     required String nama,
     required String alamat,
     required String telepon,
     required int idJabatan,
+    required String jabatan, // <-- TAMBAHKAN PARAMETER INI
+    required String jenisJabatan, // <-- TAMBAHKAN PARAMETER INI
     required int wilayahRt,
     required int wilayahRw,
     required String tglMulai,
@@ -724,13 +730,16 @@ class ApiService {
   }) async {
     try {
       final Map<String, dynamic> queryParams = {
-        'endpoint': 'update_user_rt_rw',
+        'id': id, // <-- GUNAKAN ID DI SINI
+        'endpoint': 'add_user_rt_rw', // Sesuai dokumentasi API Anda
         'jwt_token': jwtToken,
         'nik': nik,
         'nama': nama,
         'alamat': alamat,
         'no_telp': telepon,
         'id_jabatan': idJabatan.toString(),
+        'jabatan': jabatan, // <-- KIRIM PARAMETER INI
+        'jenis_jabatan': jenisJabatan, // <-- KIRIM PARAMETER INI
         'wilayah_rt': wilayahRt.toString(),
         'wilayah_rw': wilayahRw.toString(),
         'tgl_mulai': tglMulai,
@@ -740,44 +749,31 @@ class ApiService {
         'kode_unor_pegawai_session': kodeUnorPegawaiSession,
       };
 
+      // GUNAKAN URL YANG BENAR UNTUK EDIT
       final response = await _dio
           .get(
-            _addUserRtRwApiUrl,
+            _editUserRtRwApiUrl,
             queryParameters: queryParams,
             options: Options(
-              headers: {'Content-Type': 'application/json'},
-              validateStatus: (status) => true,
+              validateStatus: (status) => true, // Memproses semua status code
             ),
           )
           .timeout(const Duration(seconds: 30));
 
-      if (response.statusCode == 200) {
-        final data = response.data;
-        if (data is Map<String, dynamic> && data['status'] == true) {
-          return {
-            'success': true,
-            'message': data['message'] ?? 'Data berhasil diperbarui',
-          };
-        } else {
-          return {
-            'success': false,
-            'message': data['message'] ?? 'Gagal memperbarui data',
-          };
-        }
+      // Logika respons bisa disederhanakan
+      if (response.statusCode == 200 && response.data != null) {
+        return response.data;
       } else {
         return {
-          'success': false,
+          'status': false,
           'message': 'Gagal memperbarui data. Status: ${response.statusCode}',
         };
       }
     } on DioException catch (e) {
       String message = 'Gagal memperbarui data: ${e.message}';
-      if (e.response != null && e.response!.data != null) {
-        message = e.response!.data['message'] ?? message;
-      }
-      return {'success': false, 'message': message};
+      return {'status': false, 'message': message};
     } catch (e) {
-      return {'success': false, 'message': 'An unexpected error occurred: $e'};
+      return {'status': false, 'message': 'Terjadi kesalahan: $e'};
     }
   }
 

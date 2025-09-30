@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:paten/models/user.dart';
 import 'package:paten/screen/add_user_screen.dart';
 import 'package:paten/screen/edit_user_screen.dart';
+import 'package:paten/screen/user_detail_screen.dart';
 import 'package:paten/widgets/user_card.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:paten/providers/user_list_provider.dart';
+import 'package:paten/providers/edit_user_provider.dart';
 
 class UserListScreen extends StatefulWidget {
   const UserListScreen({super.key});
@@ -25,6 +27,12 @@ class _UserListScreenState extends State<UserListScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<UserListProvider>(
+        context,
+        listen: false,
+      ).fetchUsers(isInitialLoad: true);
+    });
     _scrollController.addListener(_onScroll);
   }
 
@@ -63,7 +71,12 @@ class _UserListScreenState extends State<UserListScreen> {
   Future<void> _onEditUser(User user) async {
     final bool? shouldRefresh = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => EditUserScreen(user: user)),
+      MaterialPageRoute(
+        builder: (context) => ChangeNotifierProvider(
+          create: (context) => EditUserProvider(user: user),
+          child: const EditUserScreen(),
+        ),
+      ),
     );
     if (mounted && shouldRefresh == true) {
       Provider.of<UserListProvider>(
@@ -86,15 +99,11 @@ class _UserListScreenState extends State<UserListScreen> {
           actions: <Widget>[
             TextButton(
               child: const Text('Batal'),
-              onPressed: () {
-                Navigator.of(context).pop(false);
-              },
+              onPressed: () => Navigator.of(context).pop(false),
             ),
             TextButton(
               child: const Text('Reset'),
-              onPressed: () {
-                Navigator.of(context).pop(true);
-              },
+              onPressed: () => Navigator.of(context).pop(true),
             ),
           ],
         );
@@ -149,7 +158,31 @@ class _UserListScreenState extends State<UserListScreen> {
                 : Colors.red,
           ),
         );
+        if (result['status'] == true) {
+          provider.fetchUsers(isInitialLoad: true);
+        }
       }
+    }
+  }
+
+  Future<void> _navigateToDetail(User user) async {
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (context) => UserDetailScreen(user: user)),
+    );
+
+    if (!mounted || result == null) return;
+
+    switch (result) {
+      case 'edit':
+        _onEditUser(user);
+        break;
+      case 'reset':
+        _onResetPassword(user);
+        break;
+      case 'delete':
+        _onDeleteUser(user);
+        break;
     }
   }
 
@@ -171,6 +204,11 @@ class _UserListScreenState extends State<UserListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Daftar Pengguna RT/RW'),
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+        ),
         centerTitle: true,
       ),
       body: Column(
@@ -179,66 +217,77 @@ class _UserListScreenState extends State<UserListScreen> {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                ElevatedButton.icon(
-                  onPressed: _onAddUser,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Tambah Data'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF03038E),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 42,
-                      vertical: 12,
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _onAddUser,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Tambah Data'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF03038E),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    minimumSize: const Size(160, 48),
                   ),
                 ),
-                ElevatedButton.icon(
-                  onPressed: () => provider.fetchUsers(isInitialLoad: true),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Refresh Data'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueGrey,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => provider.fetchUsers(isInitialLoad: true),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Refresh Data'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueGrey,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    minimumSize: const Size(120, 48),
                   ),
                 ),
               ],
             ),
           ),
           Expanded(
-            child: provider.isLoading
+            child: provider.isLoading && provider.users.isEmpty
                 ? const Center(child: CircularProgressIndicator())
                 : provider.users.isEmpty
                 ? const Center(child: Text('Tidak ada data pengguna.'))
-                : ListView.builder(
-                    controller: _scrollController,
-                    itemCount:
-                        provider.users.length +
-                        (provider.isFetchingMore ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == provider.users.length) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: CircularProgressIndicator(),
-                          ),
+                : RefreshIndicator(
+                    onRefresh: () => provider.fetchUsers(isInitialLoad: true),
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      itemCount:
+                          provider.users.length +
+                          (provider.isFetchingMore ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index == provider.users.length) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        }
+                        final user = provider.users[index];
+                        return UserCard(
+                          user: user,
+                          onTap: () => _navigateToDetail(user),
                         );
-                      }
-                      final user = provider.users[index];
-                      return UserCard(
-                        user: user,
-                        onEdit: _onEditUser,
-                        onResetPassword: _onResetPassword,
-                        onDelete: _onDeleteUser,
-                      );
-                    },
+                      },
+                    ),
                   ),
           ),
         ],
@@ -312,26 +361,6 @@ class _UserListScreenState extends State<UserListScreen> {
             },
           ),
           const SizedBox(height: 8),
-          _buildFilterDropdown(
-            label: 'Kecamatan',
-            items: const ['PINANG', 'KECAMATAN LAIN'],
-            value: provider.selectedKecamatan,
-            onChanged: (String? newValue) {
-              provider.updateFilters(kecamatan: newValue, kelurahan: null);
-              setState(() {}); // Update UI for the dropdown
-            },
-          ),
-          const SizedBox(height: 8),
-          _buildFilterDropdown(
-            label: 'Kelurahan',
-            items: const ['NEROKTOG', 'KELURAHAN LAIN'],
-            value: provider.selectedKelurahan,
-            onChanged: (String? newValue) {
-              provider.updateFilters(kelurahan: newValue);
-              setState(() {}); // Update UI for the dropdown
-            },
-          ),
-          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
@@ -371,46 +400,29 @@ class _UserListScreenState extends State<UserListScreen> {
           ),
           const SizedBox(height: 12),
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              ElevatedButton(
-                onPressed: () => provider.fetchUsers(isInitialLoad: true),
-                child: const Text('Terapkan Filter'),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _resetFilters,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text('Reset'),
+                ),
               ),
               const SizedBox(width: 8),
-              OutlinedButton(
-                onPressed: _resetFilters,
-                child: const Text('Reset'),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => provider.fetchUsers(isInitialLoad: true),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text('Terapkan Filter'),
+                ),
               ),
             ],
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFilterDropdown({
-    required String label,
-    required List<String> items,
-    String? value,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: DropdownButtonFormField<String>(
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 8,
-            vertical: 6,
-          ),
-        ),
-        value: value,
-        items: items.map((String e) {
-          return DropdownMenuItem<String>(value: e, child: Text(e));
-        }).toList(),
-        onChanged: onChanged,
       ),
     );
   }

@@ -1,18 +1,28 @@
+// lib/main.dart
+
 import 'package:flutter/material.dart';
-// import 'package:paten/screen/user_list_screen.dart';
-import 'package:provider/provider.dart'; // Import the provider package
-import 'package:paten/screen/thl_user_list_screen.dart';
-// import 'package:paten/screen/login.dart';
+import 'package:paten/screen/user_list_screen.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 
-// Import all your provider classes
+// Import untuk inisialisasi tanggal (PENTING)
+import 'package:intl/date_symbol_data_local.dart';
+
+// Import halaman login (dihidupkan kembali untuk logika login)
+import 'package:paten/screen/login.dart';
+
+// Import semua kelas provider Anda
 import 'package:paten/providers/add_user_provider.dart';
 import 'package:paten/providers/thl_list_provider.dart';
 import 'package:paten/providers/user_list_provider.dart';
 
-void main() async {
+Future<void> main() async {
+  // <-- Pastikan fungsi main sudah 'async'
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 1. INISIALISASI FORMAT TANGGAL (FIX UNTUK MASALAH TANGGAL)
+  await initializeDateFormatting('id', null);
 
   // Cek apakah user sudah login sebelumnya
   final prefs = await SharedPreferences.getInstance();
@@ -29,13 +39,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      // Use MultiProvider to register all providers
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => THLUserProvider(),
-        ), // Use the correct class name
+        // 3. PERBAIKAN NAMA PROVIDER (sesuaikan jika nama class Anda berbeda)
+        ChangeNotifierProvider(create: (_) => THLUserProvider()),
         ChangeNotifierProvider(create: (_) => AddUserProvider()),
-        // Add other providers here if you have them
         ChangeNotifierProvider(create: (_) => UserListProvider()),
       ],
       child: MaterialApp(
@@ -43,7 +50,7 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           appBarTheme: const AppBarTheme(
-            backgroundColor: Color(0xFF062B96),
+            backgroundColor: Color(0xFF083C7C),
             foregroundColor: Colors.white,
           ),
           inputDecorationTheme: InputDecorationTheme(
@@ -71,9 +78,8 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
-        home: const THLUserListScreen(),
-        // home: const UserListScreen(),
-        // home: isLoggedIn ? const LoginPage() : const LoginPage(),
+        // 2. PERBAIKAN LOGIKA LOGIN
+        home: isLoggedIn ? const UserListScreen() : const LoginPage(),
       ),
     );
   }
