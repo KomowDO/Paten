@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:paten/providers/thl_list_provider.dart';
+import 'package:paten/providers/thl_user_provider.dart';
 import 'package:paten/models/user_thl.dart';
 import 'package:paten/models/user_pns.dart';
 import 'package:paten/services/api_service.dart';
+import 'package:paten/x/thl_user_card.dart';
+import 'package:paten/screen/thl_user_detail_screen.dart';
 
 class THLUserListScreen extends StatefulWidget {
   const THLUserListScreen({super.key});
@@ -38,6 +40,7 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
     }
   }
 
+  // ---------------- FORM TAMBAH DATA ----------------
   void _showAddDataDialog() {
     final TextEditingController nikController = TextEditingController();
     UserPNS? foundUser;
@@ -49,13 +52,11 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setStateSB) {
-            void handleSearch() async {
+            Future<void> handleSearch() async {
               if (nikController.text.isEmpty) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('NIK tidak boleh kosong.')),
-                  );
-                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('NIK tidak boleh kosong.')),
+                );
                 return;
               }
 
@@ -75,34 +76,26 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
                     foundUser = user;
                     dataFound = true;
                   } else {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Data tidak ditemukan.')),
-                      );
-                    }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Data tidak ditemukan.')),
+                    );
                   }
                 });
               } catch (e) {
-                setStateSB(() {
-                  isSearching = false;
-                });
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: ${e.toString()}')),
-                  );
-                }
+                setStateSB(() => isSearching = false);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: ${e.toString()}')),
+                );
               }
             }
 
-            void handleSave() async {
+            Future<void> handleSave() async {
               if (foundUser == null) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Mohon cari data terlebih dahulu.'),
-                    ),
-                  );
-                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Mohon cari data terlebih dahulu.'),
+                  ),
+                );
                 return;
               }
 
@@ -113,7 +106,7 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
               final userData = {
                 'nip': foundUser!.nik,
                 'nama_user': foundUser!.nama ?? '',
-                'id_pegawai': '71009',
+                'id_pegawai': foundUser!.id ?? '',
                 'kode_unor': '07.01',
                 'status_kepegawaian': 'thl',
               };
@@ -127,18 +120,14 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
                   );
                 }
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Gagal menyimpan data: ${e.toString()}'),
-                    ),
-                  );
-                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Gagal menyimpan data: $e')),
+                );
               }
             }
 
             return AlertDialog(
-              title: const Text('Form Tambah Data'),
+              title: const Text('Tambah User THL'),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -150,7 +139,7 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
                             controller: nikController,
                             keyboardType: TextInputType.number,
                             decoration: const InputDecoration(
-                              hintText: 'Cari NIK ...',
+                              hintText: 'Masukkan NIK...',
                               border: OutlineInputBorder(),
                             ),
                           ),
@@ -161,20 +150,21 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.orange,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 16,
-                            ),
                           ),
                           child: isSearching
-                              ? const CircularProgressIndicator(
-                                  color: Colors.white,
+                              ? const SizedBox(
+                                  height: 18,
+                                  width: 18,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
                                 )
                               : const Text('Cari'),
                         ),
                       ],
                     ),
-                    if (dataFound) ...[
+                    if (dataFound && foundUser != null) ...[
                       const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.all(12),
@@ -198,7 +188,7 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
                       _buildDetailRow('Nama', foundUser!.nama),
                       _buildDetailRow('Jabatan', foundUser!.jabatan),
                       _buildDetailRow(
-                        'Pada',
+                        'Lokasi',
                         '${foundUser!.namaKelurahan}, Kec. ${foundUser!.namaKecamatan}',
                       ),
                     ],
@@ -226,65 +216,10 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
     );
   }
 
-  Future<void> _showDeleteConfirmationDialog(UserTHL user) async {
-    final provider = Provider.of<THLUserProvider>(context, listen: false);
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: const Text('Hapus Data'),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[
-                Text(
-                  'Anda yakin ingin menghapus data "${user.nama ?? 'Pengguna'}"?',
-                ),
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Batal'),
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-              },
-            ),
-            TextButton(
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Hapus'),
-              onPressed: () async {
-                try {
-                  await provider.deleteUser(user.id!);
-                  if (mounted) {
-                    Navigator.of(dialogContext).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Data berhasil dihapus.')),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    Navigator.of(dialogContext).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Gagal menghapus data: ${e.toString()}'),
-                      ),
-                    );
-                  }
-                }
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Widget _buildDetailRow(String label, String? value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 120,
@@ -293,168 +228,24 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
-          Expanded(
-            child: Text(
-              value ?? 'N/A',
-              style: const TextStyle(color: Colors.black87),
-            ),
-          ),
+          Expanded(child: Text(value ?? 'N/A')),
         ],
       ),
     );
   }
 
-  Widget _buildUserCard(UserTHL user, int index) {
-    final bool isActive = user.status == '1';
-    final provider = Provider.of<THLUserProvider>(context, listen: false);
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8.0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
-      elevation: 2,
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(
-          horizontal: 16.0,
-          vertical: 8.0,
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    user.nama ?? 'Nama tidak ditemukan',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isActive ? Colors.blue[100] : Colors.grey[300],
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Text(
-                    isActive ? 'Active' : 'Inactive',
-                    style: TextStyle(
-                      color: isActive ? Colors.blue[900] : Colors.black54,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'NIP: ${user.nip ?? ''}',
-              style: TextStyle(
-                color: Colors.grey[800],
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        children: <Widget>[
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 8.0,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildDetailRow('Nama', user.nama),
-                _buildDetailRow('NIP', user.nip),
-                _buildDetailRow('Kecamatan', user.namaKecamatan),
-                _buildDetailRow('Kelurahan', user.namaKelurahan),
-                _buildDetailRow('Status', user.status),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const Text(
-                          'Status Aktivasi:',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(width: 8),
-                        Switch(
-                          value: isActive,
-                          onChanged: (bool value) async {
-                            final String currentStatus = user.status;
-                            try {
-                              await provider.updateUserStatus(
-                                user.id!,
-                                currentStatus,
-                              );
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Status berhasil diubah.'),
-                                  ),
-                                );
-                              }
-                            } catch (e) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Gagal mengubah status: ${e.toString()}',
-                                    ),
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _showDeleteConfirmationDialog(user),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
+  // ---------------- MAIN BUILD ----------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Daftar Pengguna THL'),
         automaticallyImplyLeading: false,
-        actions: [
-          // IconButton(
-          //   onPressed: () {
-          //     // ... (kode lainnya)
-          //   },
-          //   icon: const Icon(Icons.clear),
-          // ),
-        ],
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Row(
                 children: [
@@ -470,20 +261,23 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      final provider = Provider.of<THLUserProvider>(
-                        context,
-                        listen: false,
-                      );
-                      _searchController.clear();
-                      provider.fetchUsers(isInitialLoad: true);
-                    },
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Refresh'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueGrey,
-                      foregroundColor: Colors.white,
+                  Expanded(
+                    // <-- Perbaikan ada di sini
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        final provider = Provider.of<THLUserProvider>(
+                          context,
+                          listen: false,
+                        );
+                        _searchController.clear();
+                        provider.fetchUsers(isInitialLoad: true);
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Refresh'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueGrey,
+                        foregroundColor: Colors.white,
+                      ),
                     ),
                   ),
                 ],
@@ -501,13 +295,10 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
                   filled: true,
                   fillColor: Colors.grey[200],
                 ),
-                onChanged: (query) {
-                  final provider = Provider.of<THLUserProvider>(
-                    context,
-                    listen: false,
-                  );
-                  provider.filterUsers(query);
-                },
+                onChanged: (q) => Provider.of<THLUserProvider>(
+                  context,
+                  listen: false,
+                ).filterUsers(q),
               ),
               const SizedBox(height: 16),
               Consumer<THLUserProvider>(
@@ -520,10 +311,7 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
                   if (provider.users.isEmpty) {
                     return const Expanded(
                       child: Center(
-                        child: Text(
-                          'Tidak ada data pengguna THL.',
-                          style: TextStyle(fontSize: 16, color: Colors.black54),
-                        ),
+                        child: Text('Tidak ada data pengguna THL.'),
                       ),
                     );
                   }
@@ -533,17 +321,25 @@ class _THLUserListScreenState extends State<THLUserListScreen> {
                       itemCount:
                           provider.users.length +
                           (provider.isFetchingMore ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (index == provider.users.length) {
-                          return const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: CircularProgressIndicator(),
-                            ),
+                      itemBuilder: (context, i) {
+                        if (i == provider.users.length) {
+                          return const Padding(
+                            padding: EdgeInsets.all(8),
+                            child: Center(child: CircularProgressIndicator()),
                           );
                         }
-                        final user = provider.users[index];
-                        return _buildUserCard(user, index);
+                        final user = provider.users[i];
+                        return THLUserCard(
+                          user: user,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => THLDetailScreen(user: user),
+                              ),
+                            );
+                          },
+                        );
                       },
                     ),
                   );

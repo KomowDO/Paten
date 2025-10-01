@@ -1,30 +1,26 @@
-// lib/main.dart
-
 import 'package:flutter/material.dart';
 import 'package:paten/screen/user_list_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 
-// Import untuk inisialisasi tanggal (PENTING)
+// Import untuk inisialisasi tanggal
 import 'package:intl/date_symbol_data_local.dart';
 
-// Import halaman login (dihidupkan kembali untuk logika login)
+// Import halaman login
 import 'package:paten/screen/login.dart';
+// import 'package:paten/screen/thl_user_list_screen.dart';
 
 // Import semua kelas provider Anda
 import 'package:paten/providers/add_user_provider.dart';
-import 'package:paten/providers/thl_list_provider.dart';
+import 'package:paten/providers/thl_user_provider.dart';
 import 'package:paten/providers/user_list_provider.dart';
 
 Future<void> main() async {
-  // <-- Pastikan fungsi main sudah 'async'
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 1. INISIALISASI FORMAT TANGGAL (FIX UNTUK MASALAH TANGGAL)
   await initializeDateFormatting('id', null);
 
-  // Cek apakah user sudah login sebelumnya
   final prefs = await SharedPreferences.getInstance();
   final savedUsername = prefs.getString('username'); // bisa juga cek token
 
@@ -40,7 +36,6 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        // 3. PERBAIKAN NAMA PROVIDER (sesuaikan jika nama class Anda berbeda)
         ChangeNotifierProvider(create: (_) => THLUserProvider()),
         ChangeNotifierProvider(create: (_) => AddUserProvider()),
         ChangeNotifierProvider(create: (_) => UserListProvider()),
@@ -78,8 +73,9 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
-        // 2. PERBAIKAN LOGIKA LOGIN
         home: isLoggedIn ? const UserListScreen() : const LoginPage(),
+        // home: UserListScreen(),
+        // home: THLUserListScreen(),
       ),
     );
   }

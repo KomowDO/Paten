@@ -1,4 +1,3 @@
-// file: lib/models/user_thl.dart
 import 'package:flutter/foundation.dart';
 
 class UserTHL {
@@ -10,7 +9,6 @@ class UserTHL {
   final String? nama;
   final String? statusKepegawaian;
 
-  // Hapus 'final' di sini agar 'status' bisa diubah
   String status;
 
   final String? namaKecamatan;

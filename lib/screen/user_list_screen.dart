@@ -240,7 +240,7 @@ class _UserListScreenState extends State<UserListScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () => provider.fetchUsers(isInitialLoad: true),
+                    onPressed: _resetFilters,
                     icon: const Icon(Icons.refresh),
                     label: const Text('Refresh Data'),
                     style: ElevatedButton.styleFrom(

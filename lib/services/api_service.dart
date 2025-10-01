@@ -42,8 +42,7 @@ class ApiService {
       'https://script.google.com/macros/s/AKfycbzKcbXUsz6Uf6tj0sdqldyCxmpjR7py7NO2t1E2JpizbmIbgtszVD-94sp71AhUip-9/exec';
 
   static const String jwtToken =
-      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1OTI0MDA1Nn0.4TtUyiSZbIW9fMeYD87EC-KpZGh2teFR3Aw03iFQsKY';
-
+      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1OTMyNTkzNn0.7eIMwwRXnm45IkT6DQFbnT-Z6kJSwBBNY3spwAqYux0';
   ApiService() : _dio = Dio(), _publicDio = Dio() {
     _addAuthenticatedInterceptors(_dio);
     _addPublicInterceptors(_publicDio);

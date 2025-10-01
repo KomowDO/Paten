@@ -8,35 +8,37 @@ class AddUserScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => AddUserProvider(),
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
-          title: const Text('Tambah Pengguna RT/RW'),
-        ),
-        body: Consumer<AddUserProvider>(
-          builder: (context, provider, child) {
-            return _buildForm(context, provider);
+    // HAPUS ChangeNotifierProvider dari sini.
+    // Provider sudah tersedia dari main.dart
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.of(context).pop();
           },
         ),
+        title: const Text('Tambah Pengguna RT/RW'),
+      ),
+      // Gunakan Consumer atau context.watch untuk mengakses provider
+      body: Consumer<AddUserProvider>(
+        builder: (context, provider, child) {
+          return _buildForm(context, provider);
+        },
       ),
     );
   }
 
+  // Widget _buildForm dan yang lainnya tidak perlu diubah,
+  // karena mereka sudah menerima provider sebagai parameter.
   Widget _buildForm(BuildContext context, AddUserProvider provider) {
-    final _formKey = GlobalKey<FormState>();
+    final formKey = GlobalKey<FormState>();
 
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
-          key: _formKey,
+          key: formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
@@ -82,17 +84,19 @@ class AddUserScreen extends StatelessWidget {
                             ? null
                             : () async {
                                 final result = await provider.checkNik();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      result['message'] ??
-                                          'Pesan tidak diketahui.',
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        result['message'] ??
+                                            'Pesan tidak diketahui.',
+                                      ),
+                                      backgroundColor: result['success'] == true
+                                          ? Colors.green
+                                          : Colors.orange,
                                     ),
-                                    backgroundColor: result['success'] == true
-                                        ? Colors.green
-                                        : Colors.orange,
-                                  ),
-                                );
+                                  );
+                                }
                               },
                         child: provider.isLoading
                             ? const SizedBox(
@@ -204,21 +208,23 @@ class AddUserScreen extends StatelessWidget {
                       onPressed: provider.isLoading
                           ? null
                           : () async {
-                              if (_formKey.currentState!.validate()) {
+                              if (formKey.currentState!.validate()) {
                                 final result = await provider.simpanData();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      result['message'] ??
-                                          'Pesan tidak diketahui',
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        result['message'] ??
+                                            'Pesan tidak diketahui',
+                                      ),
+                                      backgroundColor: result['success'] == true
+                                          ? Colors.green
+                                          : Colors.red,
                                     ),
-                                    backgroundColor: result['success'] == true
-                                        ? Colors.green
-                                        : Colors.red,
-                                  ),
-                                );
-                                if (result['success'] == true) {
-                                  Navigator.of(context).pop(true);
+                                  );
+                                  if (result['success'] == true) {
+                                    Navigator.of(context).pop(true);
+                                  }
                                 }
                               }
                             },
@@ -251,6 +257,7 @@ class AddUserScreen extends StatelessWidget {
     );
   }
 
+  // ... (Sisa widget helper tidak berubah)
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
