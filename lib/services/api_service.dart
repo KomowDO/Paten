@@ -32,6 +32,9 @@ class ApiService {
   final String _updateUserThlApiUrl =
       'https://script.google.com/macros/s/AKfycbyUJplsEvsX4cA-b5Vw1a_vUQEieyv0Mim2BOnUWs-dDesQeWkfvKfsfobFgG6ooDMr/exec';
 
+  final String _updateUserRtRwApiUrl =
+      'https://script.google.com/macros/s/AKfycbzUeW5Zx4OyLZiBx2xttLLBXAqdy9AqNllurCnxZULuI-0O4gRiffO9N6Grigytlm-X/exec';
+
   final String _deleteThlUserApiUrl =
       'https://script.google.com/macros/s/AKfycbyUJplsEvsX4cA-b5Vw1a_vUQEieyv0Mim2BOnUWs-dDesQeWkfvKfsfobFgG6ooDMr/exec';
 
@@ -42,7 +45,7 @@ class ApiService {
       'https://script.google.com/macros/s/AKfycbzKcbXUsz6Uf6tj0sdqldyCxmpjR7py7NO2t1E2JpizbmIbgtszVD-94sp71AhUip-9/exec';
 
   static const String jwtToken =
-      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1OTMyNTkzNn0.7eIMwwRXnm45IkT6DQFbnT-Z6kJSwBBNY3spwAqYux0';
+      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiIzNzQxNyIsInVzZXJuYW1lIjoiZWdvdiIsImlkX3VzZXJfZ3JvdXAiOiIxIiwiaWRfcGVnYXdhaSI6IjY2NTYiLCJyZWYiOiJGYWl6IE11aGFtbWFkIFN5YW0gLSBDYWZld2ViIEluZG9uZXNpYSAtIDIwMjUiLCJBUElfVElNRSI6MTc1OTQ1NzAxNn0.YeNMPpfX2J9diEl7JRlki3saOnWHbJUl_pVMDHA--EQ';
   ApiService() : _dio = Dio(), _publicDio = Dio() {
     _addAuthenticatedInterceptors(_dio);
     _addPublicInterceptors(_publicDio);
@@ -436,10 +439,60 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> updateUserData(Map<String, dynamic> data) async {
-    print("Simulasi: Mengirim data ke API update: $data");
-    await Future.delayed(const Duration(seconds: 1));
-    return {"message": "Simulasi update berhasil"};
+  Future<Map<String, dynamic>> updateUserRtRw(
+    String userId,
+    String newStatus,
+  ) async {
+    try {
+      final Map<String, dynamic> params = {
+        'endpoint': 'update_user_rt_rw',
+        'id': userId,
+        'status': newStatus,
+        'jwt_token': jwtToken, // Pastikan jwtToken tersedia di scope ini
+      };
+
+      final response = await _dio.get(
+        _updateUserRtRwApiUrl, // Pastikan URL ini benar
+        queryParameters: params,
+        options: Options(
+          validateStatus: (status) =>
+              true, // Selalu proses respons secara manual
+          followRedirects: true,
+          maxRedirects: 5,
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        // Pengecekan penting: pastikan respons adalah JSON (Map)
+        if (response.data is Map<String, dynamic>) {
+          final Map<String, dynamic> jsonResponse = response.data;
+          final bool isSuccess = jsonResponse['status'] == true;
+          final String message =
+              jsonResponse['message'] ??
+              (isSuccess
+                  ? 'Status berhasil diperbarui.'
+                  : 'Gagal memperbarui status.');
+
+          return {'success': isSuccess, 'message': message};
+        } else {
+          // Jika respons bukan JSON (misal: halaman error HTML), lempar error
+          throw Exception('Menerima format data yang tidak valid dari server.');
+        }
+      } else {
+        throw Exception(
+          'Gagal menghubungi server. Status Code: ${response.statusCode}',
+        );
+      }
+    } on DioException catch (e) {
+      if (e.response != null && e.response!.data is Map) {
+        final errorMsg = e.response!.data['message'] ?? 'Error dari server.';
+        throw Exception('Gagal memperbarui status: $errorMsg');
+      } else {
+        throw Exception('Masalah jaringan: ${e.message}');
+      }
+    } catch (e) {
+      throw Exception('Terjadi error tidak terduga: ${e.toString()}');
+    }
   }
 
   Future<String?> fetchBearerToken() async {

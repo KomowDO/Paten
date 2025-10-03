@@ -19,6 +19,12 @@ class AddUserScreen extends StatelessWidget {
           },
         ),
         title: const Text('Tambah Pengguna RT/RW'),
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+        ),
+        centerTitle: true,
       ),
       // Gunakan Consumer atau context.watch untuk mengakses provider
       body: Consumer<AddUserProvider>(

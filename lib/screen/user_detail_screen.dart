@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:paten/models/user.dart'; // Pastikan path model User Anda sudah benar
 import 'package:intl/intl.dart'; // Diperlukan untuk format tanggal
+import 'package:url_launcher/url_launcher.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:provider/provider.dart';
+import 'package:paten/providers/user_list_provider.dart';
+import 'package:paten/providers/edit_user_provider.dart';
+import 'package:paten/screen/edit_user_screen.dart';
 
 class UserDetailScreen extends StatefulWidget {
   final User user;
@@ -46,14 +52,13 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: const Text('Detail Pengguna RT/RW'),
-
         titleTextStyle: const TextStyle(
           color: Color.fromARGB(221, 255, 255, 255),
-          fontSize: 18,
+          fontSize: 14,
           fontWeight: FontWeight.bold,
         ),
         centerTitle: false,
-        backgroundColor: Color(0xFF083C7C),
+        backgroundColor: const Color(0xFF083C7C),
         elevation: 1,
         iconTheme: const IconThemeData(
           color: Color.fromARGB(221, 255, 255, 255),
@@ -64,7 +69,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- Bagian Info Pengguna (Avatar, Nama, NIP) ---
+            // --- Bagian Info Pengguna (Avatar, Nama) ---
             Center(
               child: Column(
                 children: [
@@ -114,6 +119,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                       ),
                     ),
                     const Divider(height: 24),
+                    _buildInfoRow('Jabatan', widget.user.nama_jabatan ?? '-'),
                     _buildInfoRow(
                       'Status',
                       (widget.user.status == '1') ? 'Aktif' : 'Tidak Aktif',
@@ -126,7 +132,11 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                       'RT / RW',
                       'RT ${widget.user.rt ?? '-'} / RW ${widget.user.rw ?? '-'}',
                     ),
-                    _buildInfoRow('No. WhatsApp', widget.user.no_wa ?? '-'),
+                    _buildInfoRow(
+                      'No. WhatsApp',
+                      widget.user.no_wa ?? '-',
+                      isWhatsApp: true,
+                    ),
                     _buildInfoRow(
                       'Jabatan Mulai',
                       _formatDateForDisplay(widget.user.jabatan_mulai),
@@ -167,14 +177,41 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                     title: const Text('Status Pengguna'),
                     subtitle: Text(_isUserActive ? 'Aktif' : 'Tidak Aktif'),
                     value: _isUserActive,
-                    onChanged: (bool value) {
-                      setState(() {
-                        _isUserActive = value;
-                        // TODO: Tambahkan logika untuk update status di sini
-                      });
+                    onChanged: (bool value) async {
+                      final provider = Provider.of<UserListProvider>(
+                        context,
+                        listen: false,
+                      );
+                      final newStatus = value ? '1' : '0';
+
+                      try {
+                        await provider.updateUserRtRw(widget.user, value);
+                        setState(() {
+                          _isUserActive = value;
+                          widget.user.status = newStatus;
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Status berhasil diubah.'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      } catch (e) {
+                        // rollback kalau gagal
+                        setState(() {
+                          _isUserActive = !_isUserActive;
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Gagal mengubah status: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
                     },
                     activeColor: Colors.green,
                   ),
+
                   const Divider(height: 1, indent: 16, endIndent: 16),
                   ListTile(
                     leading: Icon(Icons.edit, color: Colors.blue.shade700),
@@ -182,11 +219,28 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                       'Edit Pengguna',
                       style: TextStyle(color: Colors.blue.shade700),
                     ),
-                    onTap: () {
-                      // TODO: Tambahkan logika untuk edit pengguna
+                    onTap: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChangeNotifierProvider(
+                            create: (_) => EditUserProvider(
+                              user: widget.user,
+                            ), // 👈 kirim user ke provider
+                            child:
+                                const EditUserScreen(), // 👈 UI EditUserScreen
+                          ),
+                        ),
+                      );
+
+                      if (result == true) {
+                        setState(() {}); // refresh detail setelah edit berhasil
+                      }
                     },
                   ),
+
                   const Divider(height: 1, indent: 16, endIndent: 16),
+
                   ListTile(
                     leading: Icon(
                       Icons.lock_reset,
@@ -196,20 +250,70 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                       'Reset Password',
                       style: TextStyle(color: Colors.orange.shade800),
                     ),
-                    onTap: () {
-                      // TODO: Tambahkan logika untuk reset password
+                    onTap: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: Text("Konfirmasi"),
+                          content: Text(
+                            "Apakah Anda yakin ingin mereset password pengguna ini (${widget.user.nama})?",
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: Text("Batal"),
+                            ),
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: Text("Ya, Reset"),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirm == true) {
+                        final result = await Provider.of<UserListProvider>(
+                          context,
+                          listen: false,
+                        ).resetUserPassword(widget.user);
+
+                        if (result['status'] == true) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("Password berhasil direset"),
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                result['message'] ?? 'Gagal mereset password',
+                              ),
+                            ),
+                          );
+                        }
+                      }
                     },
                   ),
+
                   const Divider(height: 1, indent: 16, endIndent: 16),
-                  ListTile(
-                    leading: const Icon(Icons.delete, color: Colors.red),
-                    title: const Text(
-                      'Hapus Pengguna',
-                      style: TextStyle(color: Colors.red),
+                  SafeArea(
+                    minimum: const EdgeInsets.only(bottom: 10),
+                    child: Column(
+                      children: [
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        ListTile(
+                          leading: const Icon(Icons.delete, color: Colors.red),
+                          title: const Text(
+                            'Hapus Pengguna',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                          onTap: () {
+                            // TODO: Tambahkan logika hapus pengguna
+                          },
+                        ),
+                      ],
                     ),
-                    onTap: () {
-                      // TODO: Tambahkan logika untuk hapus pengguna di sini
-                    },
                   ),
                 ],
               ),
@@ -220,7 +324,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(String label, String value, {bool isWhatsApp = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -228,14 +332,55 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
         children: [
           Text(label, style: const TextStyle(color: Colors.black54)),
           Flexible(
-            child: Text(
-              value,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-              textAlign: TextAlign.end,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (isWhatsApp && value != '-') ...[
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: const Icon(
+                      FontAwesomeIcons.whatsapp,
+                      color: Colors.green,
+                      size: 18,
+                    ),
+                    onPressed: () async {
+                      final formattedPhone = formatPhoneNumberForWA(value);
+                      final phoneForUrl = formattedPhone.replaceAll('+', '');
+                      final waUrl = Uri.parse(
+                        'https://wa.me/$phoneForUrl?text=${Uri.encodeComponent('Halo, saya ingin menghubungi Anda.')}',
+                      );
+
+                      if (!await launchUrl(
+                        waUrl,
+                        mode: LaunchMode.externalApplication,
+                      )) {
+                        throw Exception('Could not launch WhatsApp');
+                      }
+                    },
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                Text(
+                  value,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.end,
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
   }
+}
+
+String formatPhoneNumberForWA(String rawPhone) {
+  var phone = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
+  if (phone.startsWith('0')) {
+    phone = '+62${phone.substring(1)}';
+  } else if (phone.startsWith('62')) {
+    phone = '+$phone';
+  }
+  return phone;
 }

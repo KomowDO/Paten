@@ -4,7 +4,7 @@ import 'package:paten/providers/thl_user_provider.dart';
 import 'package:paten/models/user_thl.dart';
 import 'package:paten/models/user_pns.dart';
 import 'package:paten/services/api_service.dart';
-import 'package:paten/x/thl_user_card.dart';
+import 'package:paten/widgets/thl_user_card.dart';
 import 'package:paten/screen/thl_user_detail_screen.dart';
 
 class THLUserListScreen extends StatefulWidget {

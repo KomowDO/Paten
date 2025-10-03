@@ -14,7 +14,7 @@ class User {
   final String? no_wa;
   final String? jabatan_mulai; // Nama properti yang benar
   final String? jabatan_akhir; // Nama properti yang benar
-  final String? status;
+  String? status;
   final String? nama_jabatan;
 
   User({
@@ -48,7 +48,7 @@ class User {
       no_wa: json['no_tlp']?.toString(),
       jabatan_mulai: json['jabatan_mulai']?.toString(),
       jabatan_akhir: json['jabatan_akhir']?.toString(),
-      status: json['status']?.toString(),
+      status: json['status']?.toString() ?? 'Inactive',
       nama_jabatan: json['nama_jabatan']?.toString(),
     );
   }

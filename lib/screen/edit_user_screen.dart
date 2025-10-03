@@ -1,6 +1,3 @@
-// file: screens/edit_user_screen.dart
-// KODE LENGKAP UNTUK UI
-
 import 'package:flutter/material.dart';
 import 'package:paten/providers/edit_user_provider.dart';
 import 'package:provider/provider.dart';
@@ -25,6 +22,11 @@ class EditUserScreen extends StatelessWidget {
         return Scaffold(
           appBar: AppBar(
             title: const Text('Edit Pengguna RT/RW'),
+            titleTextStyle: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
             centerTitle: true,
           ),
           body: provider.isDataLoading
